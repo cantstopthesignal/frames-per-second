@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<!-- Copyright 2011 Cant Stop The Signals -->
+<html>
+  <head>
+    <title>Compare frames per second: which looks better?</title>
+    <script type="text/javascript">
+
+/* 
+ *The following goog.* methods are adapted from the Google closure toolkit 
+ * See http://closure-library.googlecode.com/ for the full closure library
+ */
+var goog = {};
+goog.global = this;
+
+goog.bind = function(fn, selfObj, var_args) {
+  var context = selfObj || goog.global;
+  if (arguments.length > 2) {
+    var boundArgs = Array.prototype.slice.call(arguments, 2);
+    return function() {
+      var newArgs = Array.prototype.slice.call(arguments);
+      Array.prototype.unshift.apply(newArgs, boundArgs);
+      return fn.apply(context, newArgs);
+    };
+  } else {
+    return function() {
+      return fn.apply(context, arguments);
+    };
+  }
+};
+
+goog.partial = function(fn, var_args) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return function() {
+    var newArgs = Array.prototype.slice.call(arguments);
+    newArgs.unshift.apply(newArgs, args);
+    return fn.apply(this, newArgs);
+  };
+};
+
+goog.inherits = function(childCtor, parentCtor) {
+  function tempCtor() {};
+  tempCtor.prototype = parentCtor.prototype;
+  childCtor.superClass_ = parentCtor.prototype;
+  childCtor.prototype = new tempCtor();
+  childCtor.prototype.constructor = childCtor;
+};
+
+goog.asserts = {};
+
+goog.asserts.assert = function(condition, opt_message) {
+  if (!condition) {
+    throw new Error(opt_message || "Assert failed");
+  }
+};
+
+goog.dom = {};
+goog.dom.classes = {};
+
+goog.dom.classes.set = function(element, className) {
+  element.className = className;
+};
+
+goog.dom.classes.get = function(element) {
+  var className = element.className;
+  return className && typeof className.split == 'function' ?
+      className.split(/\s+/) : [];
+};
+
+goog.dom.classes.add = function(element, var_args) {
+  var classes = goog.dom.classes.get(element);
+  var args = Array.prototype.slice.call(arguments, 1);
+
+  var b = goog.dom.classes.add_(classes, args);
+  element.className = classes.join(' ');
+
+  return b;
+};
+
+goog.dom.classes.remove = function(element, var_args) {
+  var classes = goog.dom.classes.get(element);
+  var args = Array.prototype.slice.call(arguments, 1);
+
+  var b = goog.dom.classes.remove_(classes, args);
+  element.className = classes.join(' ');
+
+  return b;
+};
+
+goog.dom.classes.add_ = function(classes, args) {
+  var rv = 0;
+  for (var i = 0; i < args.length; i++) {
+    if (Array.prototype.indexOf.call(classes, args[i]) < 0) {
+      classes.push(args[i]);
+      rv++;
+    }
+  }
+  return rv == args.length;
+};
+
+goog.dom.classes.remove_ = function(classes, args) {
+  var rv = 0;
+  for (var i = 0; i < classes.length; i++) {
+    if (Array.prototype.indexOf.call(args, classes[i]) >= 0) {
+      Array.prototype.splice.call(classes, i--, 1);
+      rv++;
+    }
+  }
+  return rv == args.length;
+};
+
+goog.dom.classes.has = function(element, className) {
+  return goog.dom.classes.get(element).indexOf(className) >= 0;
+};
+
+goog.dom.classes.enable = function(element, className, enabled) {
+  if (enabled) {
+    goog.dom.classes.add(element, className);
+  } else {
+    goog.dom.classes.remove(element, className);
+  }
+};
+
+goog.dom.classes.toggle = function(element, className) {
+  var add = !goog.dom.classes.has(element, className);
+  goog.dom.classes.enable(element, className, add);
+  return add;
+};
+
+Util = {};
+
+Util.hzToMs = function(hz) {
+  return 1000 / hz;
+};
+
+EventHost = function() {
+  this.listeners = [];
+};
+
+EventHost.prototype.addListener = function(listener) {
+  this.listeners.push(listener);
+};
+
+EventHost.prototype.fire = function(var_args) {
+  for (var i = 0; i < this.listeners.length; i++) {
+    this.listeners[i].apply(null, arguments);
+  }
+};
+
+Point = function(x, y) {
+  this.x = x;
+  this.y = y;
+};
+
+Point.prototype.setX = function(x) {
+  this.x = x;
+  return this;
+};
+
+Point.prototype.setY = function(y) {
+  this.y = y;
+  return this;
+};
+
+Point.prototype.clone = function() {
+  return new Point(this.x, this.y);
+};
+
+Size = function(width, height) {
+  this.width = width;
+  this.height = height;
+};
+
+Size.prototype.clone = function() {
+  return new Size(this.width, this.height);
+};
+
+Bounds = function(left, top, right, bottom) {
+  this.left = left;
+  this.top = top;
+  this.right = right;
+  this.bottom = bottom;
+};
+
+Bounds.forPoint = function(point) {
+  return new Bounds(point.x, point.y, point.x, point.y);
+};
+
+Bounds.prototype.addPoint = function(point) {
+  this.left = Math.min(point.x, this.left);
+  this.right = Math.max(point.x, this.right);
+  this.top = Math.min(point.y, this.top);
+  this.bottom = Math.max(point.y, this.bottom);
+};
+
+Bounds.prototype.getWidth = function() {
+  return this.right - this.left;
+};
+
+Bounds.prototype.getHeight = function() {
+  return this.bottom - this.top;
+};
+
+MotionBlurSpec = function(points) {
+  this.points = points;
+};
+
+MotionBlurSpec.prototype.getPoints = function() {
+  return this.points;
+};
+
+MotionBlurSpec.prototype.getBounds = function() {
+  var bounds = Bounds.forPoint(this.points[0]);
+  for (var i = 1; i < this.points.length; i++) {
+    bounds.addPoint(this.points[i]);
+  }
+  return bounds;
+};
+
+MotionBlurSpec.forHorizontalLinearPath = function(distance) {
+  var points = [];
+  for (var i = 0; i < distance; i++) {
+    points.push(new Point(i - Math.floor(distance/2), 0));
+  }
+  return new MotionBlurSpec(points);
+};
+
+MotionBlurSpec.forDiagonalLinearPath = function(distance) {
+  var points = [];
+  for (var i = 0; i < distance; i++) {
+    var pos = i - Math.floor(distance/2);
+    points.push(new Point(pos, pos));
+  }
+  return new MotionBlurSpec(points);
+};
+
+MotionBlurConfig = function(enabled, opt_weight) {
+  this.enabled = enabled;
+  this.weight = opt_weight || 1.0;
+};
+
+MotionBlurConfig.fromString = function(str) {
+  if (str == "None") {
+    return new MotionBlurConfig(false);
+  } else {
+    return new MotionBlurConfig(true, str + 0.0);
+  }
+};
+
+MotionBlurConfig.prototype.isEnabled = function() {
+  return this.enabled;
+};
+
+MotionBlurConfig.prototype.getWeight = function() {
+  return this.weight;
+};
+
+MotionBlurConfig.prototype.toString = function() {
+  if (this.enabled) {
+    return this.weight;
+  } else {
+    return "None";
+  }
+};
+
+MotionBlurConfig.prototype.toFriendlyString = function() {
+  if (this.enabled) {
+    if (this.weight == 1.0) {
+      return "1.0 (Realistic)";
+    }
+    var weightString = "" + this.weight;
+    if (weightString.indexOf(".") < 0) {
+      weightString += ".0";
+    }
+    if (this.weight > 1.0) {
+      return weightString + " (Heavy)";
+    } else {
+      return weightString + " (Light)";
+    }
+  } else {
+    return "None";
+  }
+};
+
+DropList = function() {
+  this.el = null;
+  this.arrowEl = null;
+  this.listEl = null;
+  this.selectedEl = null;
+  this.open = false;
+  this.onchange = new EventHost();
+};
+
+DropList.NAME_FIELD = "DLO-name";
+
+DropList.prototype.render = function(containerEl) {
+  this.el = document.createElement("div");
+  this.el.className = "drop-list";
+  this.el.tabIndex = -1;
+  this.el.onclick = goog.bind(this.handleClick_, this);
+  this.el.onblur = goog.bind(this.setOpen, this, false);
+
+  this.selectedEl = document.createElement("div");
+  this.selectedEl.className = "drop-list-selected";
+  this.el.appendChild(this.selectedEl);
+
+  this.arrowEl = document.createElement("div");
+  this.arrowEl.className = "drop-list-arrow";
+  this.el.appendChild(this.arrowEl);
+
+  this.listEl = document.createElement("div");
+  this.listEl.className = "drop-list-list";
+  this.listEl.style.display = "none";
+  this.el.appendChild(this.listEl);
+
+  containerEl.appendChild(this.el);
+};
+
+DropList.prototype.createOption = function(optionName) {
+  var optionEl = document.createElement("div");
+  optionEl.className = "drop-list-option";
+  optionEl[DropList.NAME_FIELD] = optionName;
+  optionEl.onclick = goog.bind(this.handleClickOption_, this, optionName);
+
+  this.listEl.appendChild(optionEl);
+  return optionEl;
+};
+
+DropList.prototype.findOptionByName = function(optionName) {
+  var node = this.listEl.firstChild;
+  while (node) {
+    if (node[DropList.NAME_FIELD] == optionName) {
+      return node;
+    }
+    node = node.nextSibling;
+  }
+};
+
+DropList.prototype.getSelected = function() {
+  var selectedName = this.selectedEl.firstChild[DropList.NAME_FIELD];
+  goog.asserts.assert(selectedName);
+  return selectedName;
+};
+
+DropList.prototype.setSelected = function(optionName) {
+  var selectedOption = this.findOptionByName(optionName);
+  goog.asserts.assert(selectedOption);
+  this.selectedEl.innerHTML = "";
+  this.selectedEl.appendChild(selectedOption.cloneNode(true));
+  this.onchange.fire(optionName);
+};
+
+DropList.prototype.handleClick_ = function(e) {
+  this.setOpen(!this.open);
+  e.stopPropagation();
+};
+
+DropList.prototype.handleClickOption_ = function(optionName, e) {
+  this.setOpen(false);
+  this.setSelected(optionName);
+  e.stopPropagation();
+};
+
+DropList.prototype.setOpen = function(open) {
+  if (open != this.open) {
+    this.open = open;
+    if (this.open) {
+      this.listEl.style.minWidth = this.el.offsetWidth + "px";
+      this.el.focus();
+    }
+    goog.dom.classes.enable(this.el, "drop-list-open", this.open);
+    this.listEl.style.display = this.open ? "" : "none";
+  }
+};
+
+AnimationManager = function() {
+  this.running = false;
+  this.timer = null;
+  this.startTimeMs = null;
+  this.frameNumber = 0;
+  this.animations = [];
+};
+
+AnimationManager.prototype.addAnimation = function(animation) {
+  this.animations.push(animation);
+  if (this.running) {
+    animation.start();
+  }
+};
+
+AnimationManager.prototype.getFrameNumber = function() {
+  return this.frameNumber;
+};
+
+AnimationManager.prototype.start = function() {
+  if (this.running) {
+    return;
+  }
+  this.startTimeMs = new Date().getTime();
+  this.frameNumber = 0;
+  this.timer = window.setInterval(goog.bind(this.handleTick, this), 1);
+  this.running = true;
+  for (var i = 0; i < this.animations.length; i++) {
+    this.animations[i].start();
+  }
+};
+
+AnimationManager.prototype.stop = function() {
+  if (!this.running) {
+    return;
+  }
+  window.clearTimeout(this.timer);
+  this.timer = null;
+  this.running = false;
+  for (var i = 0; i < this.animations.length; i++) {
+    this.animations[i].stop();
+  }
+};
+
+AnimationManager.prototype.handleTick = function() {
+  this.frameNumber++;
+
+  var nowMs = new Date().getTime();
+  var elapsedTimeMs = nowMs - this.startTimeMs;
+
+  for (var i = 0; i < this.animations.length; i++) {
+    var animation = this.animations[i];
+    var msPerFrame = Util.hzToMs(animation.getFramesPerSecond());
+    var lastExpectedStepTimeMs = msPerFrame * Math.floor(elapsedTimeMs / msPerFrame);
+    if (animation.lastStepTimeMs < lastExpectedStepTimeMs) {
+      animation.step(elapsedTimeMs);
+    }
+  }
+};
+
+Animation = function(framesPerSecond) {
+  this.framesPerSecond = framesPerSecond;
+  this.frameNumber = 0;
+  this.lastStepTimeMs = null;
+};
+
+Animation.prototype.getFramesPerSecond = function() {
+  return this.framesPerSecond;
+};
+
+Animation.prototype.setFramesPerSecond = function(framesPerSecond) {
+  this.framesPerSecond = framesPerSecond;
+};
+
+Animation.prototype.getFrameNumber = function() {
+  return this.frameNumber;
+};
+
+Animation.prototype.start = function() {};
+
+Animation.prototype.stop = function() {};
+
+Animation.prototype.step = function(elapsedMs) {
+  this.frameNumber++;
+  this.lastStepTimeMs = elapsedMs;
+};
+
+FramesIndicator = function(animation) {
+  Animation.call(this, 1);
+  this.animation = animation;
+  this.lastFrameNumber = null;
+  this.lastElapsedMs = null;
+};
+goog.inherits(FramesIndicator, Animation);
+
+FramesIndicator.prototype.start = function() {
+  this.lastFrameNumber = null;
+  this.lastElapsedMs = null;
+};
+
+FramesIndicator.prototype.step = function(elapsedMs) {
+  FramesIndicator.superClass_.step.call(this, elapsedMs);
+  var frameNumber = this.animation.getFrameNumber();
+  if (this.lastFrameNumber) {
+    var stepMs = elapsedMs - this.lastElapsedMs;
+    var framesPerSecond = (frameNumber - this.lastFrameNumber) / (stepMs / 1000.0);
+    console.log("FPS: " + Math.round(framesPerSecond));
+  }
+  this.lastFrameNumber = frameNumber;
+  this.lastElapsedMs = elapsedMs;
+};
+
+BounceAnimation = function(framesPerSecond, velocityPxPerSec, min, max) {
+  Animation.call(this, framesPerSecond);
+  this.velocityPxPerSec = velocityPxPerSec;
+  this.min = min;
+  this.max = max;
+};
+goog.inherits(BounceAnimation, Animation);
+
+BounceAnimation.prototype.move = function(pos) {};
+
+BounceAnimation.prototype.setVelocity = function(velocityPxPerSec) {
+  this.velocityPxPerSec = velocityPxPerSec;
+};
+
+BounceAnimation.prototype.getVelocity = function() {
+  return this.velocityPxPerSec;
+};
+
+BounceAnimation.prototype.setRange = function(min, max) {
+  this.min = min;
+  this.max = max;
+};
+
+BounceAnimation.prototype.step = function(elapsedMs) {
+  BounceAnimation.superClass_.step.call(this, elapsedMs);
+  var distance = this.velocityPxPerSec * elapsedMs / 1000;
+  var span = this.max - this.min;
+  var extendedSpan = span * 2;
+  var extendedPos = distance - extendedSpan * Math.floor(distance / extendedSpan);
+  var pos;
+  if (extendedPos < span) {
+    pos = extendedPos + this.min;
+  } else {
+    pos = 2 * span - extendedPos + this.min;
+  }
+  this.move(Math.floor(pos));
+};
+
+SpriteBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
+  BounceAnimation.call(this, framesPerSecond, velocityPxPerSec, 0, 0);
+  this.sprite = sprite;
+  this.motionBlurConfig = new MotionBlurConfig(false);
+  if (!this.sprite.isLoaded()) {
+    this.sprite.onload.addListener(goog.bind(this.handleLoad, this));
+  } else {
+    this.handleLoad();
+  }
+};
+goog.inherits(SpriteBounceAnimation, BounceAnimation);
+
+SpriteBounceAnimation.prototype.setMotionBlur = function(motionBlurConfig) {
+  this.motionBlurConfig = motionBlurConfig;
+  this.updateMotionBlur();
+};
+
+SpriteBounceAnimation.prototype.updateMotionBlur = function() {
+  if (!this.motionBlurConfig.isEnabled()) {
+    this.sprite.setMotionBlur(null);
+  }
+};
+
+SpriteBounceAnimation.prototype.setFramesPerSecond = function(framesPerSecond) {
+  SpriteBounceAnimation.superClass_.setFramesPerSecond.call(this, framesPerSecond);
+  this.updateMotionBlur();
+};
+
+SpriteBounceAnimation.prototype.setVelocity = function(velocityPxPerSec) {
+  SpriteBounceAnimation.superClass_.setVelocity.call(this, velocityPxPerSec);
+  this.updateMotionBlur();
+};
+
+SpriteBounceAnimation.prototype.setRange = function(min, max) {
+  SpriteBounceAnimation.superClass_.setRange.call(this, min, max);
+  this.updateMotionBlur();
+};
+
+SpriteBounceAnimation.prototype.move = function(pos) {};
+
+SpriteBounceAnimation.prototype.handleLoad = function() {};
+
+BallBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
+  SpriteBounceAnimation.call(this, sprite, framesPerSecond, velocityPxPerSec);
+};
+goog.inherits(BallBounceAnimation, SpriteBounceAnimation);
+
+BallBounceAnimation.prototype.updateMotionBlur = function() {
+  BallBounceAnimation.superClass_.updateMotionBlur.call(this);
+  if (this.motionBlurConfig.isEnabled()) {
+    var blurPixelLength = Math.max(1, Math.ceil(this.getVelocity() / this.getFramesPerSecond())
+        * this.motionBlurConfig.getWeight());
+    this.sprite.setMotionBlur(MotionBlurSpec.forHorizontalLinearPath(blurPixelLength));
+  }
+};
+
+BallBounceAnimation.prototype.move = function(pos) {
+  this.sprite.setLeft(pos);
+};
+
+BallBounceAnimation.prototype.handleLoad = function() {
+  var containerSize = this.sprite.getContainer().getSize();
+  this.setRange(0, containerSize.width - this.sprite.getSize().width);
+};
+
+BackgroundBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
+  SpriteBounceAnimation.call(this, sprite, framesPerSecond, velocityPxPerSec);
+};
+goog.inherits(BackgroundBounceAnimation, SpriteBounceAnimation);
+
+BackgroundBounceAnimation.prototype.updateMotionBlur = function() {
+  BackgroundBounceAnimation.superClass_.updateMotionBlur.call(this);
+  if (this.motionBlurConfig.isEnabled()) {
+    var blurPixelLength = Math.max(1, Math.ceil(this.getVelocity() / this.getFramesPerSecond())
+        * this.motionBlurConfig.getWeight());
+    this.sprite.setMotionBlur(MotionBlurSpec.forDiagonalLinearPath(blurPixelLength));
+  }
+};
+
+BackgroundBounceAnimation.prototype.move = function(pos) {
+  this.sprite.setLeft(pos);
+  this.sprite.setTop(pos);
+};
+
+BackgroundBounceAnimation.prototype.handleLoad = function() {
+  var containerSize = this.sprite.getContainer().getSize();
+  var spriteSize = this.sprite.getSize();
+  var distance = Math.min(spriteSize.width - containerSize.width,
+      spriteSize.height, containerSize.height);
+  this.setRange(-distance, 0);
+};
+
+VideoSizes = {
+ VHS: new Size(480, 320),
+ DVD: new Size(720, 480),
+ SEVEN_TWENTY_P: new Size(1280, 720)
+};
+
+SpriteContainer = function(containerEl, size) {
+  this.containerEl = containerEl;
+  this.sprites = {};
+  this.spriteWrappers = {};
+  this.nextSpriteId = 0;
+  this.setSize(size);
+};
+
+SpriteContainer.prototype.setSize = function(size) {
+  this.containerEl.style.width = size.width + "px";
+  this.containerEl.style.height = size.height + "px";
+};
+
+SpriteContainer.prototype.getSize = function() {
+  return new Size(this.containerEl.offsetWidth, this.containerEl.offsetHeight);
+};
+
+SpriteContainer.prototype.addSprite = function(sprite) {
+  var spriteWrapper = document.createElement("div");
+  spriteWrapper.style.position = 'relative';
+  spriteWrapper.style.width = '0px';
+  spriteWrapper.style.height = '0px';
+  spriteWrapper.appendChild(sprite.getElement());
+  this.containerEl.appendChild(spriteWrapper);
+  sprite.spriteId = (this.nextSpriteId++);
+  this.sprites[sprite.spriteId] = sprite;
+  this.spriteWrappers[sprite.spriteId] = spriteWrapper;
+  sprite.setContainer(this);
+  this.positionSprite(sprite);
+};
+
+SpriteContainer.prototype.positionSprite = function(sprite) {
+  var spriteWrapper = this.spriteWrappers[sprite.spriteId];
+  goog.asserts.assert(spriteWrapper);
+  var pt = sprite.getPosition();
+  spriteWrapper.style.left = pt.x + 'px';
+  spriteWrapper.style.top = pt.y + 'px';
+};
+
+Sprite = function() {
+  this.motionBlurSpec = null;
+  this.container = null;
+  this.pos = new Point(0, 0);
+  this.loaded = false;
+  this.onload = new EventHost();
+};
+
+Sprite.prototype.isLoaded = function() {
+  return this.loaded;
+};
+
+Sprite.prototype.getSize = function() {};
+
+Sprite.prototype.setTop = function(top) {
+  this.move(this.getPosition().setY(top));
+};
+
+Sprite.prototype.setLeft = function(left) {
+  this.move(this.getPosition().setX(left));
+};
+
+Sprite.prototype.move = function(pt) {
+  this.pos = pt;
+  if (this.container) {
+    this.container.positionSprite(this);
+  }
+};
+
+Sprite.prototype.getPosition = function() {
+  return this.pos.clone();
+};
+
+Sprite.prototype.getElement = function() {};
+
+Sprite.prototype.setContainer = function(container) {
+  goog.asserts.assert(this.container == null);
+  this.container = container;
+};
+
+Sprite.prototype.getContainer = function() {
+  return this.container;
+};
+
+Sprite.prototype.setMotionBlur = function(motionBlurSpec) {
+  this.motionBlurSpec = motionBlurSpec;
+};
+
+ImageSprite = function(imgSrc, opt_width, opt_height) {
+  Sprite.call(this);
+  this.img = new Image();
+  this.img.src = imgSrc;
+  this.img.onload = goog.bind(this.handleLoad, this);
+  this.imgWidth = opt_width;
+  this.imgHeight = opt_height;
+  this.leftOffset = 0;
+  this.topOffset = 0;
+  this.el = document.createElement('div');
+  this.canvas = document.createElement('canvas');
+  this.el.appendChild(this.canvas);
+  this.ctx = this.canvas.getContext('2d');
+  this.canvasWidth = null;
+  this.canvasHeight = null;
+};
+goog.inherits(ImageSprite, Sprite);
+
+ImageSprite.prototype.setMotionBlur = function(motionBlurSpec) {
+  ImageSprite.superClass_.setMotionBlur.call(this, motionBlurSpec);
+  if (this.loaded) {
+    this.draw();
+  }
+};
+
+ImageSprite.prototype.getElement = function() {
+  return this.el;
+};
+
+ImageSprite.prototype.handleLoad = function() {
+  this.imgWidth = this.imgWidth || this.img.width;
+  this.imgHeight = this.imgHeight || this.img.height;
+  this.draw();
+  if (!this.loaded) {
+    this.loaded = true;
+    this.onload.fire();
+  }
+};
+
+ImageSprite.prototype.getSize = function() {
+  return new Size(this.imgWidth, this.imgHeight);
+};
+
+ImageSprite.prototype.draw = function() {
+  var motionBlurBounds = this.motionBlurSpec ? this.motionBlurSpec.getBounds() :
+      new Bounds(0, 0, 0, 0);
+
+  this.leftOffset = motionBlurBounds.left;
+  this.topOffset = motionBlurBounds.top;
+  this.canvasWidth = this.imgWidth + motionBlurBounds.getWidth();
+  this.canvasHeight = this.imgHeight + motionBlurBounds.getHeight();
+
+  this.el.width = this.imgWidth;
+  this.el.height = this.imgHeight;
+  this.canvas.style.position = 'relative';
+  this.canvas.width = this.canvasWidth;
+  this.canvas.height = this.canvasHeight;
+  this.canvas.style.left = this.leftOffset + 'px';
+  this.canvas.style.top = this.topOffset + 'px';
+
+  if (this.motionBlurSpec) {
+    this.drawMotionBlur();
+  } else {
+    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+    this.ctx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+  }
+};
+
+ImageSprite.prototype.drawMotionBlur = function() {
+  this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+  this.ctx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+
+  var imgData = this.ctx.getImageData(0, 0, this.imgWidth, this.imgHeight);
+  var imgPixels = imgData.data;
+  var outputData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight);
+  var outputPixels = outputData.data;
+
+  var points = this.motionBlurSpec.getPoints();
+  var numPoints = points.length;
+
+  for (var i = 0; i < imgPixels.length; i++) {
+    imgPixels[i] /= numPoints;
+  }
+
+  for (var i = 0; i < numPoints; i++) {
+    var point = points[i];
+    for (var y = 0; y < this.imgHeight; y++) {
+      for (var x = 0; x < this.imgWidth; x++) {
+        var outX = x + point.x - this.leftOffset;
+        var outY = y + point.y - this.topOffset;
+        if (outX < 0 || outX >= this.canvasWidth || outY < 0 || outY >= this.canvasHeight) {
+          continue;
+        }
+        var imgOff = (y * this.imgWidth + x) * 4;
+        var outOff = (outY * this.canvasWidth + outX) * 4;
+        for (var j = 0; j < 4; j++) {
+          outputPixels[outOff+j] += imgPixels[imgOff+j];
+        }
+      }
+    }
+  }
+  this.ctx.putImageData(outputData, 0, 0);
+};
+
+ImageAsset = function(name, src) {
+  this.name = name;
+  this.src = src;
+};
+
+BACKGROUND_IMAGE_ASSETS = [
+  new ImageAsset("Mountain Lakes", "images/background1.jpg")
+];
+
+BALL_IMAGE_ASSETS = [
+  new ImageAsset("Soccer Ball", "images/ball1.png")
+];
+
+STANDARD_FRAMES_PER_SECONDS = [
+  5, 10, 15, 25, 30, 48, 60, 90, 120
+];
+
+STANDARD_VELOCITY_PER_SECONDS = [
+  50, 100, 200, 500, 1000, 2000
+];
+
+STANDARD_MOTION_BLURS = [
+  new MotionBlurConfig(false),
+  new MotionBlurConfig(true, 0.5),
+  new MotionBlurConfig(true, 1.0),
+  new MotionBlurConfig(true, 1.5),
+  new MotionBlurConfig(true, 2.0),
+  new MotionBlurConfig(true, 2.5),
+  new MotionBlurConfig(true, 3.0)
+];
+
+AnimationController = function(el, spriteContainer, animationManager) {
+  this.el = el;
+  this.controlContainerEl = this.el.getElementsByClassName("control-container")[0];
+  this.spriteContainer = spriteContainer;
+  this.animationManager = animationManager;
+  this.spriteControls = [];
+};
+
+AnimationController.prototype.addSpriteControl = function(control) {
+  if (this.controlContainerEl.childNodes.length) {
+    this.addSpacer();
+  }
+  control.render(this.controlContainerEl);
+  control.installSprite(this.spriteContainer, this.animationManager);
+  this.spriteControls.push(control);
+  this.positionSprites();
+  return control;
+};
+
+AnimationController.prototype.positionSprites = function() {
+  // Simple heuristic, find all bouncing ball sprites and set their top positions.
+  var ballControls = [];
+  for (var i = 0; i < this.spriteControls.length; i++) {
+    if (this.spriteControls[i].getAnimation() instanceof BallBounceAnimation) {
+      ballControls.push(this.spriteControls[i]);
+    }
+  }
+  if (ballControls.length) {
+    var packedHeight = 0;
+    for (var i = 0; i < ballControls.length; i++) {
+      packedHeight += ballControls[i].getSprite().getSize().height;
+    }
+    var spacing = (this.spriteContainer.getSize().height - packedHeight) /
+        (ballControls.length+1);
+    var top = spacing;
+    for (var i = 0; i < ballControls.length; i++) {
+      ballControls[i].getSprite().setTop(top);
+      top += spacing + ballControls[i].getSprite().getSize().height;
+    }
+  }
+};
+
+AnimationController.prototype.addSpacer = function() {
+  var spacerEl = document.createElement("div");
+  spacerEl.className = "spacer";
+  for (var i = 0; i < 4; i++) {
+    var rowEl = document.createElement("div");
+    if (i == 0) {
+      rowEl.className = "title-cell control-row";
+    } else {
+      rowEl.className = "control-row";
+    }
+    rowEl.innerHTML = "&nbsp;";
+    spacerEl.appendChild(rowEl);
+  }
+  this.controlContainerEl.appendChild(spacerEl);
+};
+
+AnimationController.prototype.render = function() {
+  var nodes = this.el.childNodes;
+  for (var i = 0; i < nodes.length; i++) {
+    if (nodes[i].nodeType != Node.ELEMENT_NODE) {
+      this.el.removeChild(nodes[i]);
+    }
+  }
+};
+
+AnimationController.prototype.loadDefaultPreset = function() {
+  this.addSpriteControl(new BackgroundSpriteControl(
+      BACKGROUND_IMAGE_ASSETS, "Mountain Lakes"))
+      .setVelocity(100)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(true));
+};
+
+SpriteControl = function(spriteAssets, assetName) {
+  this.spriteAssets = spriteAssets;
+  this.assetName = assetName;
+  this.sprite = null;
+  this.animation = null;
+  this.el = null;
+  this.titleImgEl = null;
+  this.titleNameEl = null;
+  
+  this.assetDropList = null;
+  this.fpsDropList = null;
+  this.motionBlurDropList = null;
+  this.velocityDropList = null;
+
+  this.velocity = 200;
+  this.framesPerSecond = 30;
+  this.motionBlurConfig = new MotionBlurConfig(false);
+
+  this.createSprite();
+  this.createAnimation();
+};
+
+SpriteControl.prototype.getAnimation = function() {
+  return this.animation;
+};
+
+SpriteControl.prototype.getSprite = function() {
+  return this.sprite;
+};
+
+SpriteControl.prototype.render = function(containerEl) {
+  this.el = document.createElement("div");
+  this.el.className = "sprite";
+
+  var titleCell = document.createElement("div");
+  titleCell.className = "title-cell control-row";
+  this.assetDropList = new DropList();
+  this.assetDropList.render(titleCell);  
+  for (var i = 0; i < this.spriteAssets.length; i++) {
+    var spriteAsset = this.spriteAssets[i];
+    var option = this.assetDropList.createOption(spriteAsset.name);
+    var titleImgEl = document.createElement("img");
+    titleImgEl.src = spriteAsset.src;
+    option.appendChild(titleImgEl);
+    var titleNameEl = document.createElement("span");
+    titleNameEl.appendChild(document.createTextNode(spriteAsset.name));
+    option.appendChild(titleNameEl);
+  }
+  this.assetDropList.setSelected(this.assetName);
+  this.assetDropList.onchange.addListener(goog.bind(this.handleAssetChange_, this));
+  this.el.appendChild(titleCell);
+
+  var fpsCell = document.createElement("div");
+  fpsCell.className = "fps-cell control-row";
+  this.fpsDropList = new DropList();
+  this.fpsDropList.render(fpsCell);
+  for (var i = 0; i < STANDARD_FRAMES_PER_SECONDS.length; i++) {
+    var fps = STANDARD_FRAMES_PER_SECONDS[i];
+    var option = this.fpsDropList.createOption(fps);
+    option.appendChild(document.createTextNode(fps + " fps"));
+  }
+  this.fpsDropList.setSelected(this.framesPerSecond);
+  this.fpsDropList.onchange.addListener(goog.bind(this.handleFpsChange_, this));
+  this.el.appendChild(fpsCell);
+
+  var motionBlurCell = document.createElement("div");
+  motionBlurCell.className = "motion-blur-cell control-row";
+  this.motionBlurDropList = new DropList();
+  this.motionBlurDropList.render(motionBlurCell);
+  for (var i = 0; i < STANDARD_MOTION_BLURS.length; i++) {
+    var motionBlur = STANDARD_MOTION_BLURS[i];
+    var option = this.motionBlurDropList.createOption(motionBlur.toString());
+    option.appendChild(document.createTextNode(motionBlur.toFriendlyString()));
+  }
+  this.motionBlurDropList.setSelected(this.motionBlurConfig.toString());
+  this.motionBlurDropList.onchange.addListener(
+      goog.bind(this.handleMotionBlurChange_, this));
+  this.el.appendChild(motionBlurCell);
+
+  var velocityCell = document.createElement("div");
+  velocityCell.className = "velocity-cell control-row";
+  this.velocityDropList = new DropList();
+  this.velocityDropList.render(velocityCell);
+  for (var i = 0; i < STANDARD_VELOCITY_PER_SECONDS.length; i++) {
+    var v = STANDARD_VELOCITY_PER_SECONDS[i];
+    var option = this.velocityDropList.createOption(v);
+    option.appendChild(document.createTextNode(v + " px/s"));
+  }
+  this.velocityDropList.setSelected(this.velocity);
+  this.velocityDropList.onchange.addListener(goog.bind(this.handleVelocityChange_, this));
+  this.el.appendChild(velocityCell);
+
+  containerEl.appendChild(this.el);
+};
+
+SpriteControl.prototype.setVelocity = function(velocity) {
+  this.velocityDropList.setSelected(velocity);
+  return this;
+};
+
+SpriteControl.prototype.setFramesPerSecond = function(framesPerSecond) {
+  this.fpsDropList.setSelected(framesPerSecond);
+  return this;
+};
+
+SpriteControl.prototype.setMotionBlur = function(motionBlurConfig) {
+  this.motionBlurDropList.setSelected(motionBlurConfig.toString());
+  return this;
+};
+
+SpriteControl.prototype.getAssetByName = function(assetName) {
+  for (var i = 0; i < this.spriteAssets.length; i++) {
+    if (this.spriteAssets[i].name == assetName) {
+      return this.spriteAssets[i];
+    }
+  }
+  return null;
+};
+
+SpriteControl.prototype.handleAssetChange_ = function(assetName) {
+  console.log("Asset changed to " + assetName);
+};
+
+SpriteControl.prototype.handleFpsChange_ = function(fps) {
+  this.framesPerSecond = fps;
+  if (this.animation) {
+    this.animation.setFramesPerSecond(this.framesPerSecond);
+  }
+};
+
+SpriteControl.prototype.handleVelocityChange_ = function(velocity) {
+  this.velocity = velocity;
+  if (this.animation) {
+    this.animation.setVelocity(this.velocity);
+  }
+};
+
+SpriteControl.prototype.handleMotionBlurChange_ = function(motionBlurStr) {
+  this.motionBlurConfig = MotionBlurConfig.fromString(motionBlurStr);
+  if (this.animation) {
+    this.animation.setMotionBlur(this.motionBlurConfig);
+  }
+};
+
+SpriteControl.prototype.installSprite = function(spriteContainer, animationManager) {
+  spriteContainer.addSprite(this.sprite);
+  animationManager.addAnimation(this.animation);
+};
+
+SpriteControl.prototype.createSprite = function() {
+  this.sprite = new ImageSprite(this.getAssetByName(this.assetName).src);
+};
+
+SpriteControl.prototype.createAnimation = function() {};
+
+BallSpriteControl = function(spriteAssets, assetName) {
+  SpriteControl.call(this, spriteAssets, assetName);
+};
+goog.inherits(BallSpriteControl, SpriteControl);
+
+BallSpriteControl.prototype.createAnimation = function() {
+  this.animation = new BallBounceAnimation(this.sprite, this.framesPerSecond, this.velocity);
+};
+
+BallSpriteControl.prototype.createSprite = function() {
+  this.sprite = new ImageSprite(this.getAssetByName(this.assetName).src, 100, 100);
+};
+
+BackgroundSpriteControl = function(spriteAssets, assetName) {
+  SpriteControl.call(this, spriteAssets, assetName);
+};
+goog.inherits(BackgroundSpriteControl, SpriteControl);
+
+BackgroundSpriteControl.prototype.createAnimation = function() {
+  this.animation = new BackgroundBounceAnimation(
+      this.sprite, this.framesPerSecond, this.velocity);
+};
+
+window.onload = function() {
+  var spriteContainer = new SpriteContainer(
+      document.getElementById('animation-container'),
+      VideoSizes.DVD);
+
+  var animationManager = new AnimationManager();
+
+  var animationController = new AnimationController(
+      document.getElementById('animation-controller'), spriteContainer, animationManager);
+  animationController.render();
+  animationController.loadDefaultPreset();
+
+  animationManager.start();
+};
+    </script>
+    <style type="text/css">
+body {
+  margin: 0px;
+  padding: 0px;
+}
+.drop-list {
+  border: 1px solid transparent;
+  cursor: default;
+  outline: none;
+  -webkit-user-select: none;
+  display: inline-block;
+}
+.drop-list:hover, .drop-list.drop-list-open {
+  background-color: white;
+  border-color: #99f;
+  border-top-color: #ccf;
+  border-left-color: #ccf;
+}
+.drop-list-arrow {
+  width: 12px;
+  height: 10px;
+  background: url(images/dropdown-arrow.png) -5px -4px;
+  display: inline-block;
+}
+.drop-list-selected {
+  display: inline-block;
+}
+.drop-list-list {
+  position: absolute;
+  margin-top: 1px;
+  x-border: 1px solid black;
+  background-color: white;
+  box-shadow: 0px 5px 15px #000;
+  z-index: 1000;
+}
+.drop-list-list .drop-list-option:hover{
+  background-color: #ccf;
+}
+.control-bar .drop-list-option {
+  padding: 3px;
+}
+.drop-arrow {
+}
+.control-bar {
+  margin: 10px;
+  font-family: Arial;
+  font-size: 11pt;
+}
+.control-bar .control-container {
+  display: inline-block;
+  vertical-align: top;
+}
+.control-bar .control-row {
+  border-bottom: 1px solid #ccc;
+  padding: 5px;
+  height: 19px;
+}
+.control-bar .title-cell {
+  height: 40px;
+}
+.control-bar .control-row:first-child {
+  padding-top: 5px;
+}
+.control-bar .control-row:last-child {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+.control-bar .desc {
+  display: inline-block;
+  vertical-align: top;
+  border-top: 2px solid transparent;
+}
+.control-bar .desc .control-row {
+  text-align: right;
+  padding-right: 20px;
+}
+.control-bar .desc .title-cell {
+  vertical-align: middle;
+  line-height: 40px;
+}
+.control-bar .spacer {
+  display: inline-block;
+  width: 15px;
+  border-top: 2px solid transparent;
+}
+.control-bar .sprite {
+  display: inline-block;
+  vertical-align: top;
+  background-color: #e8e8ff;
+  border: 2px outset;
+  border-color: #ddf;
+  border-radius: 10px;
+  min-width: 125px;
+}
+.control-bar .sprite .title-cell img {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+}
+.control-bar .sprite .title-cell span {
+  vertical-align: middle;
+  line-height: 32px;
+  margin: 5px;
+}
+.control-bar .sprite .fps-cell {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 25px;
+}
+.control-bar .sprite .motion-blur-cell {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 25px;
+}
+.control-bar .sprite .velocity-cell {
+  padding-top: 2px;
+}
+.animation-box {
+  text-align: center;
+  background-color: #black;
+}
+.animation-frame {
+  border: 5px solid black;
+  display: inline-block;
+  background-color: black;
+}
+.animation-container {
+  display: inline-block;
+  text-align: left;
+  overflow: hidden;
+}
+   </style>
+  </head>
+  <body>
+    <div id="animation-controller" class="control-bar">
+      <div class="desc">
+        <div class="title-cell control-row">
+          <span>Asset</span>
+        </div>
+        <div class="fps-cell control-row">
+          <span>Frames per second</span>
+        </div>
+        <div class="motion-blur-cell control-row">
+          <span>Motion blur</span>
+        </div>
+        <div class="velocity-cell control-row">
+          <span>Velocity</span>
+        </div>
+      </div>
+      <div class="control-container"></div>
+    </div>
+    <div class="animation-box">
+      <div id="animation-frame" class="animation-frame">
+        <div id="animation-container" class="animation-container">
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
