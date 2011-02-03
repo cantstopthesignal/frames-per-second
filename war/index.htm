@@ -382,9 +382,17 @@ AnimationManager = function() {
 
 AnimationManager.prototype.addAnimation = function(animation) {
   this.animations.push(animation);
+  animation.setManager(this);
   if (this.running) {
     animation.start();
   }
+};
+
+AnimationManager.prototype.removeAnimation = function(animation) {
+  var index = this.animations.indexOf(animation);
+  goog.asserts.assert(index >= 0);
+  this.animations.splice(index, 1);
+  animation.setManager(null);
 };
 
 AnimationManager.prototype.getFrameNumber = function() {
@@ -436,6 +444,16 @@ Animation = function(framesPerSecond) {
   this.framesPerSecond = framesPerSecond;
   this.frameNumber = 0;
   this.lastStepTimeMs = null;
+  this.manager = null;
+};
+
+Animation.prototype.setManager = function(manager) {
+  goog.asserts.assert(manager == null || this.manager == null);
+  this.manager = manager;
+};
+
+Animation.prototype.getManager = function() {
+  return this.manager;
 };
 
 Animation.prototype.getFramesPerSecond = function() {
@@ -638,17 +656,33 @@ SpriteContainer.prototype.getSize = function() {
 };
 
 SpriteContainer.prototype.addSprite = function(sprite) {
+  this.addSpriteBefore(sprite, null);
+};
+
+SpriteContainer.prototype.addSpriteBefore = function(sprite, otherSprite) {
   var spriteWrapper = document.createElement("div");
   spriteWrapper.style.position = 'relative';
   spriteWrapper.style.width = '0px';
   spriteWrapper.style.height = '0px';
   spriteWrapper.appendChild(sprite.getElement());
-  this.containerEl.appendChild(spriteWrapper);
   sprite.spriteId = (this.nextSpriteId++);
   this.sprites[sprite.spriteId] = sprite;
   this.spriteWrappers[sprite.spriteId] = spriteWrapper;
   sprite.setContainer(this);
+
+  var otherWrapper = otherSprite ? this.spriteWrappers[otherSprite.spriteId] : null;
+  this.containerEl.insertBefore(spriteWrapper, otherWrapper);
+
   this.positionSprite(sprite);
+};
+
+SpriteContainer.prototype.removeSprite = function(sprite) {
+  if (sprite.spriteId in this.sprites) {
+    delete this.sprites[sprite.spriteId];
+    this.containerEl.removeChild(this.spriteWrappers[sprite.spriteId]);
+    delete this.spriteWrappers[sprite.spriteId];
+    sprite.setContainer(null);
+  }
 };
 
 SpriteContainer.prototype.positionSprite = function(sprite) {
@@ -695,7 +729,7 @@ Sprite.prototype.getPosition = function() {
 Sprite.prototype.getElement = function() {};
 
 Sprite.prototype.setContainer = function(container) {
-  goog.asserts.assert(this.container == null);
+  goog.asserts.assert(container == null || this.container == null);
   this.container = container;
 };
 
@@ -881,12 +915,16 @@ STANDARD_MOTION_BLURS = [
   new MotionBlurConfig(true, 3.0)
 ];
 
-AnimationController = function(el, spriteContainer, animationManager) {
+AnimationController = function(el, bottomEl, spriteContainer, animationManager) {
   this.el = el;
   this.controlContainerEl = this.el.getElementsByClassName("control-container")[0];
+  this.bottomEl = bottomEl;
+  this.attributionsLinkEl = this.bottomEl.getElementsByClassName(
+      "show-attributions-link")[0];
   this.spriteContainer = spriteContainer;
   this.animationManager = animationManager;
   this.spriteControls = [];
+  this.attributionsShown = false;
 };
 
 AnimationController.prototype.addSpriteControl = function(control) {
@@ -926,10 +964,13 @@ AnimationController.prototype.positionSprites = function() {
 AnimationController.prototype.addSpacer = function() {
   var spacerEl = document.createElement("div");
   spacerEl.className = "spacer";
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < 5; i++) {
     var rowEl = document.createElement("div");
     if (i == 0) {
       rowEl.className = "title-cell control-row";
+    } else if (i == 1) {
+      rowEl.className = "attribution-cell control-row";
+      rowEl.style.display = this.showAttributions ? "" : "none";
     } else {
       rowEl.className = "control-row";
     }
@@ -946,6 +987,7 @@ AnimationController.prototype.render = function() {
       this.el.removeChild(nodes[i]);
     }
   }
+  this.attributionsLinkEl.onclick = goog.bind(this.handleAttributionsLinkClick_, this);
 };
 
 AnimationController.prototype.loadDefaultPreset = function() {
@@ -964,6 +1006,22 @@ AnimationController.prototype.loadDefaultPreset = function() {
       .setMotionBlur(new MotionBlurConfig(true));
 };
 
+AnimationController.prototype.handleAttributionsLinkClick_ = function() {
+  if (this.attributionsShown) {
+    return;
+  }
+  this.attributionsShown = true;
+  this.attributionsLinkEl.style.display = "none";
+
+  var attributionCells = this.el.getElementsByClassName("attribution-cell");
+  for (var i = 0; i < attributionCells.length; i++) {
+    attributionCells[i].style.display = "";
+  }  
+  for (var i = 0; i < this.spriteControls; i++) {
+    this.spriteControls[i].showAttribution();
+  }
+};
+
 SpriteControl = function(spriteAssets, assetName) {
   this.spriteAssets = spriteAssets;
   this.assetName = assetName;
@@ -972,8 +1030,10 @@ SpriteControl = function(spriteAssets, assetName) {
   this.el = null;
   this.titleImgEl = null;
   this.titleNameEl = null;
-  
+
   this.assetDropList = null;
+  this.attributionCell = null;
+  this.attributionLinkEl = null;
   this.fpsDropList = null;
   this.motionBlurDropList = null;
   this.velocityDropList = null;
@@ -1015,6 +1075,17 @@ SpriteControl.prototype.render = function(containerEl) {
   this.assetDropList.setSelected(this.assetName);
   this.assetDropList.onchange.addListener(goog.bind(this.handleAssetChange_, this));
   this.el.appendChild(titleCell);
+
+  this.attributionCell = document.createElement("div");
+  this.attributionCell.className = "attribution-cell control-row";
+  this.attributionCell.style.display = "none";
+  this.attributionLinkEl = document.createElement("a");
+  this.attributionLinkEl.appendChild(document.createTextNode("Image source"));
+  this.attributionLinkEl.target = "_blank";
+  this.attributionLinkEl.href = this.attributionLinkEl.title =
+      this.getAssetByName(this.assetName).attribLink;
+  this.attributionCell.appendChild(this.attributionLinkEl);
+  this.el.appendChild(this.attributionCell);
 
   var fpsCell = document.createElement("div");
   fpsCell.className = "fps-cell control-row";
@@ -1059,6 +1130,10 @@ SpriteControl.prototype.render = function(containerEl) {
   containerEl.appendChild(this.el);
 };
 
+SpriteControl.prototype.showAttribution = function() {
+  this.attributionCell.style.display = "";
+};
+
 SpriteControl.prototype.setVelocity = function(velocity) {
   this.velocityDropList.setSelected(velocity);
   return this;
@@ -1084,7 +1159,22 @@ SpriteControl.prototype.getAssetByName = function(assetName) {
 };
 
 SpriteControl.prototype.handleAssetChange_ = function(assetName) {
-  console.log("Asset changed to " + assetName);
+  this.assetName = assetName;
+  var position = this.sprite.getPosition();
+  var spriteContainer = this.sprite.getContainer();
+  var oldSprite = this.sprite;
+  this.sprite = null;
+  var animationManager = this.animation.getManager();
+  animationManager.removeAnimation(this.animation);
+  this.animation = null;
+  this.createSprite();
+  spriteContainer.addSpriteBefore(this.sprite, oldSprite);
+  spriteContainer.removeSprite(oldSprite);
+  this.sprite.move(position);
+  this.createAnimation();
+  animationManager.addAnimation(this.animation);
+  this.attributionLinkEl.href = this.attributionLinkEl.title =
+      this.getAssetByName(this.assetName).attribLink;
 };
 
 SpriteControl.prototype.handleFpsChange_ = function(fps) {
@@ -1126,6 +1216,7 @@ goog.inherits(BallSpriteControl, SpriteControl);
 
 BallSpriteControl.prototype.createAnimation = function() {
   this.animation = new BallBounceAnimation(this.sprite, this.framesPerSecond, this.velocity);
+  this.animation.setMotionBlur(this.motionBlurConfig);
 };
 
 BallSpriteControl.prototype.createSprite = function() {
@@ -1140,6 +1231,7 @@ goog.inherits(BackgroundSpriteControl, SpriteControl);
 BackgroundSpriteControl.prototype.createAnimation = function() {
   this.animation = new BackgroundBounceAnimation(
       this.sprite, this.framesPerSecond, this.velocity);
+  this.animation.setMotionBlur(this.motionBlurConfig);
 };
 
 window.onload = function() {
@@ -1150,7 +1242,8 @@ window.onload = function() {
   var animationManager = new AnimationManager();
 
   var animationController = new AnimationController(
-      document.getElementById('animation-controller'), spriteContainer, animationManager);
+      document.getElementById('control-bar'), document.getElementById('bottom-control-bar'),
+      spriteContainer, animationManager);
   animationController.render();
   animationController.loadDefaultPreset();
 
@@ -1198,12 +1291,12 @@ body {
 .control-bar .drop-list-option {
   padding: 3px;
 }
-.drop-arrow {
+.control-bar, .bottom-control-bar {
+  font-family: Arial;
+  font-size: 11pt;
 }
 .control-bar {
   margin: 10px;
-  font-family: Arial;
-  font-size: 11pt;
 }
 .control-bar .control-container {
   display: inline-block;
@@ -1274,9 +1367,21 @@ body {
 .control-bar .sprite .velocity-cell {
   padding-top: 2px;
 }
+.bottom-control-bar {
+  margin: 5px 10px;
+}
+.show-attributions {
+  text-align: right;
+  font-size: 10pt;
+}
+.show-attributions a {
+  cursor: pointer;
+  color: #66e;
+}
 .animation-box {
   text-align: center;
   background-color: #black;
+  width: 100%;
 }
 .animation-frame {
   border: 5px solid black;
@@ -1291,10 +1396,13 @@ body {
    </style>
   </head>
   <body>
-    <div id="animation-controller" class="control-bar">
+    <div id="control-bar" class="control-bar">
       <div class="desc">
         <div class="title-cell control-row">
           <span>Asset</span>
+        </div>
+        <div class="attribution-cell control-row" style="display: none">
+          <span>Attribution</span>
         </div>
         <div class="fps-cell control-row">
           <span>Frames per second</span>
@@ -1312,6 +1420,11 @@ body {
       <div id="animation-frame" class="animation-frame">
         <div id="animation-container" class="animation-container">
         </div>
+      </div>
+    </div>
+    <div id="bottom-control-bar" class="bottom-control-bar">
+      <div class="show-attributions">
+        <a class="show-attributions-link">Show attributions</a>
       </div>
     </div>
   </body>
