@@ -372,6 +372,50 @@ DropList.prototype.setOpen = function(open) {
   }
 };
 
+Spinner = function() {
+  this.el = document.createElement("div");
+  goog.dom.classes.add(this.el, "spinner");
+  document.body.appendChild(this.el);
+
+  this.spinDisplayed = false;
+  this.spinDepth = 0;
+  this.spinTimeout;
+};
+
+Spinner.getInstance = function() {
+  if (Spinner.instance == null) {
+    Spinner.instance = new Spinner();
+  }
+  return Spinner.instance;
+}
+
+Spinner.prototype.spin = function(spin, opt_delay) {
+  if (spin) {
+    this.spinDepth++;
+  } else {
+    this.spinDepth--;
+  }
+  if (spin && opt_delay && this.spinDepth == 1) {
+    if (!this.spinTimeout) {
+      this.spinTimeout = window.setTimeout(
+          goog.bind(this.handleTimeout, this), opt_delay);
+    }
+    return;
+  }
+  this.spinDisplayed = this.spinDepth > 0;
+  this.updateDisplay();
+};
+
+Spinner.prototype.handleTimeout = function() {
+  this.spinDisplayed = this.spinDepth > 0;
+  this.updateDisplay();
+  delete this.spinTimeout;
+};
+
+Spinner.prototype.updateDisplay = function() {
+  this.el.style.display = this.spinDisplayed ? "block" : "none";
+};
+
 AnimationManager = function() {
   this.running = false;
   this.timer = null;
@@ -756,6 +800,8 @@ ImageSprite = function(imgSrc, opt_width, opt_height) {
   this.ctx = this.canvas.getContext('2d');
   this.canvasWidth = null;
   this.canvasHeight = null;
+  this.imgCanvas = document.createElement('canvas');
+  this.imgCtx = this.imgCanvas.getContext('2d');
 };
 goog.inherits(ImageSprite, Sprite);
 
@@ -773,7 +819,8 @@ ImageSprite.prototype.getElement = function() {
 ImageSprite.prototype.handleLoad = function() {
   this.imgWidth = this.imgWidth || this.img.width;
   this.imgHeight = this.imgHeight || this.img.height;
-  this.draw();
+  this.drawImgCanvas();
+  this.draw(true);
   if (!this.loaded) {
     this.loaded = true;
     this.onload.fire();
@@ -784,7 +831,14 @@ ImageSprite.prototype.getSize = function() {
   return new Size(this.imgWidth, this.imgHeight);
 };
 
-ImageSprite.prototype.draw = function() {
+ImageSprite.prototype.drawImgCanvas = function() {
+  this.imgCanvas.width = this.imgWidth;
+  this.imgCanvas.height = this.imgHeight;
+  this.imgCtx.clearRect(0, 0, this.imgWidth, this.imgHeight);
+  this.imgCtx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+};
+
+ImageSprite.prototype.draw = function(initialDraw) {
   var motionBlurBounds = this.motionBlurSpec ? this.motionBlurSpec.getBounds() :
       new Bounds(0, 0, 0, 0);
 
@@ -796,24 +850,26 @@ ImageSprite.prototype.draw = function() {
   this.el.width = this.imgWidth;
   this.el.height = this.imgHeight;
   this.canvas.style.position = 'relative';
-  this.canvas.width = this.canvasWidth;
-  this.canvas.height = this.canvasHeight;
   this.canvas.style.left = this.leftOffset + 'px';
   this.canvas.style.top = this.topOffset + 'px';
 
+  if (initialDraw || !this.motionBlurSpec) {
+    this.drawPlain();
+  }
   if (this.motionBlurSpec) {
     this.drawMotionBlur();
-  } else {
-    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
-    this.ctx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
   }
 };
 
-ImageSprite.prototype.drawMotionBlur = function() {
+ImageSprite.prototype.drawPlain = function() {
+  this.canvas.width = this.canvasWidth;
+  this.canvas.height = this.canvasHeight;
   this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
   this.ctx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+};
 
-  var imgData = this.ctx.getImageData(0, 0, this.imgWidth, this.imgHeight);
+ImageSprite.prototype.drawMotionBlur = function() {
+  var imgData = this.imgCtx.getImageData(0, 0, this.imgWidth, this.imgHeight);
   var imgPixels = imgData.data;
   var outputData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight);
   var outputPixels = outputData.data;
@@ -821,28 +877,69 @@ ImageSprite.prototype.drawMotionBlur = function() {
   var points = this.motionBlurSpec.getPoints();
   var numPoints = points.length;
 
-  for (var i = 0; i < imgPixels.length; i++) {
-    imgPixels[i] /= numPoints;
-  }
+  Spinner.getInstance().spin(true, 100);
 
-  for (var i = 0; i < numPoints; i++) {
-    var point = points[i];
-    for (var y = 0; y < this.imgHeight; y++) {
-      for (var x = 0; x < this.imgWidth; x++) {
-        var outX = x + point.x - this.leftOffset;
-        var outY = y + point.y - this.topOffset;
-        if (outX < 0 || outX >= this.canvasWidth || outY < 0 || outY >= this.canvasHeight) {
-          continue;
-        }
-        var imgOff = (y * this.imgWidth + x) * 4;
-        var outOff = (outY * this.canvasWidth + outX) * 4;
-        for (var j = 0; j < 4; j++) {
-          outputPixels[outOff+j] += imgPixels[imgOff+j];
-        }
-      }
+  var leftOffset = this.leftOffset;
+  var topOffset = this.topOffset;
+  var canvasWidth = this.canvasWidth;
+  var canvasHeight = this.canvasHeight;
+  var j = 0;
+  var i = 0;
+  var y = 0;
+  var process = goog.bind(function() {
+    if (this.leftOffset != leftOffset || this.topOffset != topOffset
+        || this.canvasWidth != canvasWidth || this.canvasHeight != canvasHeight) {
+      Spinner.getInstance().spin(false);
+      return;
     }
-  }
-  this.ctx.putImageData(outputData, 0, 0);
+
+    var count = 0;
+    var startTimeMs = new Date().getTime();
+    var shouldReturn = function (workDone) {
+      count -= workDone;
+      if (count <= 0) {
+        var elapsedMs = new Date().getTime() - startTimeMs;
+        if (elapsedMs > 10) {
+          window.setTimeout(process, 0);
+          return true;
+        }
+        count = 10000;
+      }
+      return false;
+    };
+    for (; j < imgPixels.length; j++) {
+      imgPixels[j] /= numPoints;
+      if (shouldReturn(1)) return;
+    }
+
+    while (i < numPoints) {
+      var point = points[i];
+      while (y < this.imgHeight) {
+        for (var x = 0; x < this.imgWidth; x++) {
+          var outX = x + point.x - leftOffset;
+          var outY = y + point.y - topOffset;
+          if (outX < 0 || outX >= canvasWidth || outY < 0 || outY >= canvasHeight) {
+            continue;
+          }
+          var imgOff = (y * this.imgWidth + x) * 4;
+          var outOff = (outY * canvasWidth + outX) * 4;
+          for (var k = 0; k < 4; k++) {
+            outputPixels[outOff+k] += imgPixels[imgOff+k];
+          }
+        }
+        y++;
+        if (shouldReturn(this.imgWidth * 10)) return;
+      }
+      y = 0;
+      i++;
+    }
+    this.canvas.width = canvasWidth;
+    this.canvas.height = canvasHeight;
+    this.ctx.putImageData(outputData, 0, 0);
+    Spinner.getInstance().spin(false);
+  }, this);
+  
+  window.setTimeout(process, 0);
 };
 
 ImageAsset = function(name, src, thumbSrc, attribLink) {
@@ -1283,6 +1380,7 @@ body {
   x-border: 1px solid black;
   background-color: white;
   box-shadow: 0px 5px 15px #000;
+  -webkit-box-shadow: 0px 5px 15px #000;
   z-index: 1000;
 }
 .drop-list-list .drop-list-option:hover{
@@ -1380,7 +1478,7 @@ body {
 }
 .animation-box {
   text-align: center;
-  background-color: #black;
+  background-color: black;
   width: 100%;
 }
 .animation-frame {
@@ -1392,6 +1490,21 @@ body {
   display: inline-block;
   text-align: left;
   overflow: hidden;
+}
+.spinner {
+  background: white url(images/spinner.gif) no-repeat 20px 10px;
+  width: 32px;
+  height: 32px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -30px;
+  margin-top: -25px;
+  padding: 10px 20px;
+  border: 1px solid black;
+  border-radius: 15px;
+  box-shadow: 0px 5px 10px #000;
+  -webkit-box-shadow: 0px 5px 10px #000;
 }
    </style>
   </head>
