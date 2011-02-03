@@ -811,17 +811,56 @@ ImageSprite.prototype.drawMotionBlur = function() {
   this.ctx.putImageData(outputData, 0, 0);
 };
 
-ImageAsset = function(name, src) {
+ImageAsset = function(name, src, thumbSrc, attribLink) {
   this.name = name;
   this.src = src;
+  this.thumbSrc = thumbSrc;
+  this.attribLink = attribLink;
 };
 
 BACKGROUND_IMAGE_ASSETS = [
-  new ImageAsset("Mountain Lakes", "images/background1.jpg")
+  new ImageAsset("Autumn", "images/backgrounds/autumn.jpg",
+      "images/backgrounds/thumbs/autumn.jpg",
+      "http://commons.wikimedia.org/wiki/File:Autumn_on_the_Indiana_University_campus.jpg"),
+  new ImageAsset("Autumn 2", "images/backgrounds/autumn2.jpg",
+      "images/backgrounds/thumbs/autumn2.jpg",
+      "http://commons.wikimedia.org/wiki/File:Autumn_scenery.jpg"),
+  new ImageAsset("Forest", "images/backgrounds/forest.jpg",
+      "images/backgrounds/thumbs/forest.jpg",
+      "http://commons.wikimedia.org/wiki/File:Dunns_Pond_Mound.jpg"),
+  new ImageAsset("Milky Way", "images/backgrounds/milky-way.jpg",
+      "images/backgrounds/thumbs/milky-way.jpg",
+      "http://commons.wikimedia.org/wiki/File:ESO-VLT-Laser-phot-33a-07.jpg"),
+  new ImageAsset("River", "images/backgrounds/river.jpg",
+      "images/backgrounds/thumbs/river.jpg",
+      "http://commons.wikimedia.org/wiki/File:Blanchard_River_at_Gilboa.jpg"),
+  new ImageAsset("Stars", "images/backgrounds/stars.jpg",
+      "images/backgrounds/thumbs/stars.jpg",
+      "http://commons.wikimedia.org/wiki/File:Central_region_of_the_Milky_Way.jpg"),
+  new ImageAsset("Sunset", "images/backgrounds/sunset.jpg",
+      "images/backgrounds/thumbs/sunset.jpg",
+      "http://commons.wikimedia.org/wiki/File:Sunset_on_the_Victoria_lake.JPG"),
+  new ImageAsset("Winter", "images/backgrounds/winter.jpg",
+      "images/backgrounds/thumbs/winter.jpg",
+      "http://commons.wikimedia.org/wiki/File:Wintry_scenery.jpg")
 ];
 
 BALL_IMAGE_ASSETS = [
-  new ImageAsset("Soccer Ball", "images/ball1.png")
+  new ImageAsset("Soccer Ball", "images/sprites/ball1.png",
+      "images/sprites/thumbs/ball1.png",
+      "http://commons.wikimedia.org/wiki/File:Soccer_ball.svg"),
+  new ImageAsset("Baseball", "images/sprites/ball2.png",
+      "images/sprites/thumbs/ball2.png",
+      "http://commons.wikimedia.org/wiki/File:Baseball_(crop).jpg"),
+  new ImageAsset("World Cup Football", "images/sprites/ball3.png",
+      "images/sprites/thumbs/ball3.png",
+      "http://commons.wikimedia.org/wiki/File:Adidas_African_Cup_of_Nations_2008_match_ball_Wawa_Aba.jpg"),
+  new ImageAsset("Moon", "images/sprites/moon.png",
+      "images/sprites/thumbs/moon.png",
+      "http://commons.wikimedia.org/wiki/File:Full_moon.png"),
+  new ImageAsset("Sphere", "images/sprites/sphere.png",
+      "images/sprites/thumbs/sphere.png",
+      "http://commons.wikimedia.org/wiki/File:Blue-sphere.png")
 ];
 
 STANDARD_FRAMES_PER_SECONDS = [
@@ -911,7 +950,7 @@ AnimationController.prototype.render = function() {
 
 AnimationController.prototype.loadDefaultPreset = function() {
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, "Mountain Lakes"))
+      BACKGROUND_IMAGE_ASSETS, "River"))
       .setVelocity(100)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
@@ -967,7 +1006,7 @@ SpriteControl.prototype.render = function(containerEl) {
     var spriteAsset = this.spriteAssets[i];
     var option = this.assetDropList.createOption(spriteAsset.name);
     var titleImgEl = document.createElement("img");
-    titleImgEl.src = spriteAsset.src;
+    titleImgEl.src = spriteAsset.thumbSrc;
     option.appendChild(titleImgEl);
     var titleNameEl = document.createElement("span");
     titleNameEl.appendChild(document.createTextNode(spriteAsset.name));
