@@ -390,9 +390,20 @@ Spinner = function() {
   this.el.appendChild(this.messageEl);
 
   this.spinDisplayed = false;
-  this.spinDepth = 0;
-  this.message;
+  this.spinEntries = [];
   this.spinTimeout;
+};
+
+Spinner.SpinEntry = function(spinner, opt_message) {
+  this.spinner = spinner;
+  this.message = opt_message || null;
+};
+
+Spinner.SpinEntry.prototype.release = function() {
+  if (this.spinner) {
+    this.spinner.releaseSpin(this);
+    this.spinner = null;
+  }
 };
 
 Spinner.getInstance = function() {
@@ -400,40 +411,51 @@ Spinner.getInstance = function() {
     Spinner.instance = new Spinner();
   }
   return Spinner.instance;
-}
+};
 
-Spinner.prototype.spin = function(spin, opt_delay, opt_message) {
-  if (spin) {
-    this.spinDepth++;
-  } else {
-    this.spinDepth--;
-  }
-  if (spin) {
-    this.message = opt_message;
-  }
-  if (spin && opt_delay && this.spinDepth == 1) {
+Spinner.prototype.getSpinDepth = function() {
+  return this.spinEntries.length;
+};
+
+Spinner.prototype.spin = function(opt_delay, opt_message) {
+  var spinEntry = new Spinner.SpinEntry(this, opt_message);
+  this.spinEntries.push(spinEntry);
+  if (opt_delay && this.getSpinDepth() == 1) {
     if (!this.spinTimeout) {
       this.spinTimeout = window.setTimeout(
           goog.bind(this.handleTimeout, this), opt_delay);
     }
-    return;
+  } else {
+    this.spinDisplayed = this.getSpinDepth() > 0;
+    this.updateDisplay();
   }
-  this.spinDisplayed = this.spinDepth > 0;
+  return spinEntry;
+};
+
+Spinner.prototype.releaseSpin = function(spinEntry) {
+  this.spinEntries.splice(this.spinEntries.indexOf(spinEntry), 1);
+  this.spinDisplayed = this.getSpinDepth() > 0;
   this.updateDisplay();
 };
 
 Spinner.prototype.handleTimeout = function() {
-  this.spinDisplayed = this.spinDepth > 0;
+  this.spinDisplayed = this.getSpinDepth() > 0;
   this.updateDisplay();
   delete this.spinTimeout;
 };
 
 Spinner.prototype.updateDisplay = function() {
   this.el.style.display = this.spinDisplayed ? "" : "none";
-  this.messageEl.style.display = this.message ? "" : "none";
-  if (this.message) {
+
+  var message;
+  for (var i = 0; i < this.spinEntries.length; i++) {
+    message = this.spinEntries[i].message || message;
+  }
+
+  this.messageEl.style.display = message ? "" : "none";
+  if (message) {
     this.messageEl.innerHTML = "";
-    this.messageEl.appendChild(document.createTextNode(this.message));
+    this.messageEl.appendChild(document.createTextNode(message));
   }
   this.el.style.marginLeft = -(this.el.offsetWidth/2) + "px";
   this.el.style.marginTop = -(this.el.offsetHeight/2) + "px";
@@ -1098,6 +1120,7 @@ ImageSprite = function(imgSrc, opt_width, opt_height) {
   this.img = new Image();
   this.img.src = imgSrc;
   this.img.onload = goog.bind(this.handleLoad, this);
+  this.imgLoadSpin = Spinner.getInstance().spin(100, "Loading image...");
   this.imgWidth = opt_width;
   this.imgHeight = opt_height;
   this.leftOffset = 0;
@@ -1125,6 +1148,8 @@ ImageSprite.prototype.getElement = function() {
 };
 
 ImageSprite.prototype.handleLoad = function() {
+  this.imgLoadSpin.release();
+  this.imgLoadSpin = null;
   this.imgWidth = this.imgWidth || this.img.width;
   this.imgHeight = this.imgHeight || this.img.height;
   this.drawImgCanvas();
@@ -1185,7 +1210,7 @@ ImageSprite.prototype.drawMotionBlur = function() {
   var points = this.motionBlurSpec.getPoints();
   var numPoints = points.length;
 
-  Spinner.getInstance().spin(true, 100, "Generating motion blur...");
+  var spin = Spinner.getInstance().spin(100, "Generating motion blur...");
   
   var leftOffset = this.leftOffset;
   var topOffset = this.topOffset;
@@ -1197,7 +1222,7 @@ ImageSprite.prototype.drawMotionBlur = function() {
   var process = goog.bind(function() {
     if (this.leftOffset != leftOffset || this.topOffset != topOffset
         || this.canvasWidth != canvasWidth || this.canvasHeight != canvasHeight) {
-      Spinner.getInstance().spin(false);
+      spin.release();
       return;
     }
 
@@ -1244,7 +1269,7 @@ ImageSprite.prototype.drawMotionBlur = function() {
     this.canvas.width = canvasWidth;
     this.canvas.height = canvasHeight;
     this.ctx.putImageData(outputData, 0, 0);
-    Spinner.getInstance().spin(false);
+    spin.release();
   }, this);
   
   window.setTimeout(process, 0);
