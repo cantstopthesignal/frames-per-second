@@ -831,12 +831,13 @@ BackgroundBounceAnimation.prototype.handleLoad = function() {
 
 DetectRefreshRates = function() {
   this.onstatechange = new EventHost();
-  this.javaDeployScript = null;
   this.state = DetectRefreshRates.State.NONE;
   this.screenRefreshRates = null;
   this.startLookupOnFrameLoad = false;
+  this.window = window;
+  this.document = document;
 
-  this.iframe = document.createElement("iframe");
+  this.iframe = this.document.createElement("iframe");
   this.iframe.style.visibility = "hidden";
   this.iframe.style.width = "0px";
   this.iframe.style.height = "0px";
@@ -846,7 +847,9 @@ DetectRefreshRates = function() {
   this.iframe.setAttribute("src", "blank.htm");
   this.iframe.addEventListener("load",
       goog.bind(this.handleFrameLoad, this), false);
-  document.body.appendChild(this.iframe);
+  this.frameDocument = null;
+  this.frameWindow = null;
+  this.document.body.appendChild(this.iframe);
   this.frameLoaded = false;
 };
 
@@ -876,15 +879,20 @@ DetectRefreshRates.prototype.startLookup = function() {
     this.startLookupOnFrameLoad = true;
     return;
   }
-  this.javaDeployScript = this.frameDocument.createElement('script');
-  this.javaDeployScript.setAttribute('type', 'text/javascript');
-  this.javaDeployScript.setAttribute('src', 'http://java.com/js/deployJava.js');
-  this.javaDeployScript.addEventListener('load',
-      goog.bind(this.handleJavaDeployLoad, this), false);
-  this.javaDeployScript.addEventListener('error',
-      goog.bind(this.handleJavaDeployError, this), false);
   this.stateChange(DetectRefreshRates.State.CHECKING_JAVA);
-  this.frameDocument.getElementsByTagName('head')[0].appendChild(this.javaDeployScript);
+  this.loadJavaDeploy(this.frameDocument);
+  this.loadJavaDeploy(this.document);
+};
+
+DetectRefreshRates.prototype.loadJavaDeploy = function(doc) {
+  var script = doc.createElement('script');
+  script.setAttribute('type', 'text/javascript');
+  script.setAttribute('src', 'http://java.com/js/deployJava.js');
+  script.addEventListener('load',
+      goog.bind(this.handleJavaDeployLoad, this), false);
+  script.addEventListener('error',
+      goog.bind(this.handleJavaDeployError, this), false);
+  doc.getElementsByTagName('head')[0].appendChild(script);
 };
 
 DetectRefreshRates.prototype.getState = function() {
@@ -909,34 +917,37 @@ DetectRefreshRates.prototype.handleFrameLoad = function() {
   }
 };
 
-DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
-  this.javaDeploy = this.frameWindow['deployJava'];
-  goog.asserts.assert(this.javaDeploy, 'deployJava object expected');
+DetectRefreshRates.prototype.getApplet = function() {
+  return this.frameDocument.applets[0];
+};
 
-  this.javaDeploy.returnPage = window.location.href;
+DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
+  if (this.javaDeploy && this.frameJavaDeploy) {
+    return;
+  }
+  this.javaDeploy = this.javaDeploy || this.window['deployJava'];
+  this.frameJavaDeploy = this.frameJavaDeploy || this.frameWindow['deployJava'];
+  if (!this.javaDeploy || !this.frameJavaDeploy) {
+    return;
+  }
+
+  this.javaDeploy.returnPage = this.window.location.href;
 
   if (!this.javaDeploy.versionCheck(DetectRefreshRates.JAVA_VERSION_MATCHER)) {
     this.stateChange(DetectRefreshRates.State.JAVA_MISSING);
     return;
   }
 
-  this.applet = this.frameDocument.createElement('applet');
-  this.applet.setAttribute('codebase', 'applet');
-  this.applet.setAttribute('archive', 'DetectRefreshRates.jar');
-  this.applet.setAttribute('code', 'DetectRefreshRates.class');
-  this.applet.setAttribute('width', '0');
-  this.applet.setAttribute('height', '0');
-
-  var param = this.frameDocument.createElement('param');
-  param.setAttribute('name', 'codebase_lookup');
-  param.setAttribute('value', 'false');
-  this.applet.appendChild(param);
-
-  this.frameDocument.body.appendChild(this.applet);
   this.stateChange(DetectRefreshRates.State.LOADING_APPLET);
-
-  this.appletPollInterval = window.setInterval(goog.bind(this.handleAppletPoll, this), 500);
+  this.appletPollInterval = this.window.setInterval(goog.bind(this.handleAppletPoll, this), 500);
   this.appletPollStartTimeMs = (new Date()).getTime();
+
+  this.frameJavaDeploy.runApplet({
+    codebase:'applet',
+    code:'DetectRefreshRates.class',
+    archive:'DetectRefreshRates.jar',
+    width:0, height:0
+  }, {}, '1.5');
 };
 
 DetectRefreshRates.prototype.installJava = function() {
@@ -945,14 +956,14 @@ DetectRefreshRates.prototype.installJava = function() {
 
 DetectRefreshRates.prototype.handleAppletPoll = function() {
   var nowTime = (new Date()).getTime();
-  if (!this.applet.getRefreshRates
+  if (!this.getApplet().getRefreshRates
       && nowTime < this.appletPollStartTimeMs + 60 * 1000) {
     return;
   }
-  window.clearInterval(this.appletPollInterval);
+  this.window.clearInterval(this.appletPollInterval);
 
-  if (this.applet.getRefreshRates) {
-    this.screenRefreshRates = this.applet.getRefreshRates().split(",");
+  if (this.getApplet().getRefreshRates) {
+    this.screenRefreshRates = this.getApplet().getRefreshRates().split(",");
     this.stateChange(DetectRefreshRates.State.COMPLETE);
   } else {
     this.stateChange(DetectRefreshRates.State.LOADING_APPLET_TIMEOUT);
