@@ -880,18 +880,32 @@ DetectRefreshRates.prototype.startLookup = function() {
     return;
   }
   this.stateChange(DetectRefreshRates.State.CHECKING_JAVA);
-  this.loadJavaDeploy(this.frameDocument);
-  this.loadJavaDeploy(this.document);
+
+  var count = 0;
+  var failed = false;
+  function onSuccess() {
+    ++count;
+    if (count == 2) {
+      this.handleJavaDeployLoad();
+    }
+  };
+  function onFailure() {
+    if (!failed) {
+      failed = true;
+      this.handleJavaDeployError();
+    }
+  };
+
+  this.loadJavaDeploy(this.frameDocument, onSuccess, onFailure, this);
+  this.loadJavaDeploy(this.document, onSuccess, onFailure, this);
 };
 
-DetectRefreshRates.prototype.loadJavaDeploy = function(doc) {
+DetectRefreshRates.prototype.loadJavaDeploy = function(doc, onSuccess, onFailure, opt_scope) {
   var script = doc.createElement('script');
   script.setAttribute('type', 'text/javascript');
   script.setAttribute('src', 'http://java.com/js/deployJava.js');
-  script.addEventListener('load',
-      goog.bind(this.handleJavaDeployLoad, this), false);
-  script.addEventListener('error',
-      goog.bind(this.handleJavaDeployError, this), false);
+  script.addEventListener('load', goog.bind(onSuccess, opt_scope), false);
+  script.addEventListener('error', goog.bind(onFailure, opt_scope), false);
   doc.getElementsByTagName('head')[0].appendChild(script);
 };
 
@@ -922,18 +936,14 @@ DetectRefreshRates.prototype.getApplet = function() {
 };
 
 DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
-  if (this.javaDeploy && this.frameJavaDeploy) {
-    return;
-  }
-  this.javaDeploy = this.javaDeploy || this.window['deployJava'];
-  this.frameJavaDeploy = this.frameJavaDeploy || this.frameWindow['deployJava'];
-  if (!this.javaDeploy || !this.frameJavaDeploy) {
-    return;
-  }
+  this.javaDeploy = this.window['deployJava'];
+  this.frameJavaDeploy = this.frameWindow['deployJava'];
+  goog.asserts.assert(this.javaDeploy && this.frameJavaDeploy,
+      'Expected deployJava to have loaded');
 
   this.javaDeploy.returnPage = this.window.location.href;
 
-  if (!this.javaDeploy.versionCheck(DetectRefreshRates.JAVA_VERSION_MATCHER)) {
+  if (!this.frameJavaDeploy.versionCheck(DetectRefreshRates.JAVA_VERSION_MATCHER)) {
     this.stateChange(DetectRefreshRates.State.JAVA_MISSING);
     return;
   }
@@ -1773,8 +1783,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
     message = "In a moment you should be redirected to install java...";
   } else if (!this.checkUsingJava) {
     var javaButton = document.createElement('button');
-    javaButton.appendChild(document.createTextNode(
-        'Find my monitor\'s refresh rate using java'));    
+    javaButton.innerHTML = '<span>Find my monitor\'s refresh rate using java</span>';
     javaButton.addEventListener('click',
         goog.bind(this.handleCheckUsingJavaClick, this), false);
     this.buttonContainerEl.appendChild(javaButton);
@@ -1790,8 +1799,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
           DetectRefreshRates.JAVA_VERSION_MATCHER +
           " installed.";
       var javaInstallButton = document.createElement('button');
-      javaInstallButton.appendChild(document.createTextNode(
-          'Redirect to install java if available'));
+      javaInstallButton.innerHTML = '<span>Redirect to install java if available</span>';
       javaInstallButton.addEventListener('click',
           goog.bind(this.handleInstallJavaClick, this), false);
       this.buttonContainerEl.appendChild(javaInstallButton);
@@ -1827,8 +1835,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
   }
 
   var ignoreButton = document.createElement('button');
-  ignoreButton.appendChild(document.createTextNode(
-      'Ignore this warning'));
+  ignoreButton.innerHTML = '<span>Ignore this warning</span>';
   ignoreButton.addEventListener('click',
       goog.bind(this.handleIgnoreClick, this), false);
   this.buttonContainerEl.appendChild(ignoreButton);
@@ -2095,6 +2102,10 @@ body {
   font-size: 16px;
   text-align: center;
   width: 100%;
+}
+.large-fps-warning button span {
+  display: block;
+  padding: 1px;
 }
 .spinner {
   background-color: black;
