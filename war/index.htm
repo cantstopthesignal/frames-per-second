@@ -462,6 +462,10 @@ AnimationManager.prototype.removeAnimation = function(animation) {
   animation.setManager(null);
 };
 
+AnimationManager.prototype.getAnimations = function() {
+  return this.animations;
+};
+
 AnimationManager.prototype.getFrameNumber = function() {
   return this.frameNumber;
 };
@@ -512,6 +516,7 @@ Animation = function(framesPerSecond) {
   this.frameNumber = 0;
   this.lastStepTimeMs = null;
   this.manager = null;
+  this.frameRateMonitor = new FrameRateMonitor(this);
 };
 
 Animation.prototype.setManager = function(manager) {
@@ -535,6 +540,10 @@ Animation.prototype.getFrameNumber = function() {
   return this.frameNumber;
 };
 
+Animation.prototype.getFrameRateMonitor = function() {
+  return this.frameRateMonitor;
+};
+
 Animation.prototype.start = function() {};
 
 Animation.prototype.stop = function() {};
@@ -542,31 +551,152 @@ Animation.prototype.stop = function() {};
 Animation.prototype.step = function(elapsedMs) {
   this.frameNumber++;
   this.lastStepTimeMs = elapsedMs;
+  this.frameRateMonitor.step();
 };
 
-FramesIndicator = function(animation) {
-  Animation.call(this, 1);
+FrameRateMonitor = function(animation) {
   this.animation = animation;
-  this.lastFrameNumber = null;
-  this.lastElapsedMs = null;
+  this.frameHistory = [];
+  this.lastAnnounceTimeMs = 0;
+};
+
+FrameRateMonitor.HISTORY_SECONDS = 2;
+
+FrameRateMonitor.prototype.step = function() {
+  var frameTimeMs = new Date().getTime();
+  while (this.frameHistory.length && this.frameHistory[0]
+         <= frameTimeMs - FrameRateMonitor.HISTORY_SECONDS * 1000) {
+    this.frameHistory.splice(0, 1);
+  }
+  this.frameHistory.push(frameTimeMs);
+
+  if (frameTimeMs > this.lastAnnounceTimeMs + 5000) {
+    this.lastAnnounceTimeMs = frameTimeMs;
+  }
+};
+
+FrameRateMonitor.prototype.getFrameRate = function() {
+  return this.frameHistory.length / FrameRateMonitor.HISTORY_SECONDS;
+};
+
+FrameRateMonitor.prototype.getFrameVariance = function() {
+  var avgStep = (this.frameHistory[this.frameHistory.length - 1] - this.frameHistory[0])
+      / (this.frameHistory.length - 1);
+  var sumDist = 0;
+  for (var i = 0; i < this.frameHistory.length - 1; i++) {
+    var step = this.frameHistory[i+1] - this.frameHistory[i];
+    sumDist += (step - avgStep) * (step - avgStep);
+  }
+  return sumDist / (this.frameHistory.length - 1);
+};
+
+FramesIndicator = function(el) {
+  Animation.call(this, 2);
+  this.el = el;
+  this.el.onmouseover = goog.bind(this.setFullDisplay, this, true);
+  this.el.onmouseout = goog.bind(this.setFullDisplay, this, false);
+
+  this.tableEl = document.createElement("table");
+  this.el.appendChild(this.tableEl);
+
+  this.arrowEl = document.createElement("div");
+  goog.dom.classes.add(this.arrowEl, "frames-indicator-arrow");
+  this.el.appendChild(this.arrowEl);
+
+  this.ballEl = document.createElement("div");
+  goog.dom.classes.add(this.ballEl, "frames-indicator-ball", "error");
+  this.el.appendChild(this.ballEl);
+
+  this.fullDisplay;
+  this.setFullDisplay(false);
+
+  var row = this.addRow();
+  this.addCell(row, "Animation");
+  this.addCell(row, "Frames per second");
+  this.addCell(row, "Timing error (stddev)");
 };
 goog.inherits(FramesIndicator, Animation);
 
-FramesIndicator.prototype.start = function() {
-  this.lastFrameNumber = null;
-  this.lastElapsedMs = null;
+FramesIndicator.prototype.step = function(elapsedMs) {
+  FramesIndicator.superClass_.step.call(this, elapsedMs);  
+  this.renderDisplay();
 };
 
-FramesIndicator.prototype.step = function(elapsedMs) {
-  FramesIndicator.superClass_.step.call(this, elapsedMs);
-  var frameNumber = this.animation.getFrameNumber();
-  if (this.lastFrameNumber) {
-    var stepMs = elapsedMs - this.lastElapsedMs;
-    var framesPerSecond = (frameNumber - this.lastFrameNumber) / (stepMs / 1000.0);
-    console.log("FPS: " + Math.round(framesPerSecond));
+FramesIndicator.prototype.setFullDisplay = function(fullDisplay) {
+  this.fullDisplay = fullDisplay;
+  this.tableEl.style.display = this.fullDisplay ? "" : "none";
+  this.arrowEl.style.display = this.fullDisplay ? "none" : "";
+}
+
+FramesIndicator.prototype.addRow = function() {
+  var row = document.createElement("tr");
+  this.tableEl.appendChild(row);
+  return row;
+};
+
+FramesIndicator.prototype.addCell = function(row, text) {
+  var cell = document.createElement("td");
+  row.appendChild(cell);
+  cell.appendChild(document.createTextNode(text));
+  return cell;
+};
+
+FramesIndicator.prototype.renderDisplay = function() {
+  while (this.tableEl.firstChild.nextSibling) {
+    this.tableEl.removeChild(this.tableEl.firstChild.nextSibling);
   }
-  this.lastFrameNumber = frameNumber;
-  this.lastElapsedMs = elapsedMs;
+
+  var hasWarnings = false;
+  var hasErrors = false;
+
+  var animations = this.manager.getAnimations();
+  var animationNumber = 0;
+  for (var i = 0; i < animations.length; i++) {
+    if (animations[i] instanceof FramesIndicator) {
+      continue;
+    }
+    var row = this.addRow();
+
+    animationNumber++;
+    this.addCell(row, animationNumber);
+
+    var frameMonitor = animations[i].getFrameRateMonitor();
+    var fps = frameMonitor.getFrameRate();
+    var fpsDesired = animations[i].getFramesPerSecond();
+    var fpsErrorPercent = (Math.abs(fps - fpsDesired) / fpsDesired) * 100;
+    var timingStddev = Math.sqrt(frameMonitor.getFrameVariance());
+
+    var fpsCell = this.addCell(row, Math.round(fps) + " / " + fpsDesired);
+    if (fpsErrorPercent > 20) {
+      hasErrors = true;
+      goog.dom.classes.add(fpsCell, "error");
+    } else if (fpsErrorPercent > 5) {
+      hasWarnings = true;
+      goog.dom.classes.add(fpsCell, "warning");
+    }
+
+    var timingError = "" + (Math.round(timingStddev * 100) / 100);
+    if (timingError.indexOf(".") < 0) {
+      timingError += ".00";
+    } else if (timingError[timingError.length-3] != '.') {
+      timingError += "0";
+    }
+    var timingErrorCell = this.addCell(row, timingError + "ms");
+    if (timingStddev > 8) {
+      hasErrors = true;
+      goog.dom.classes.add(timingErrorCell, "error");
+    } else if (timingStddev > 3) {
+      hasWarnings = true;
+      goog.dom.classes.add(timingErrorCell, "warning");
+    }
+  }
+
+  goog.dom.classes.remove(this.ballEl, "warning", "error");
+  if (hasErrors) {
+    goog.dom.classes.add(this.ballEl, "error");
+  } else if (hasWarnings) {
+    goog.dom.classes.add(this.ballEl, "warning");
+  }
 };
 
 BounceAnimation = function(framesPerSecond, velocityPxPerSec, min, max) {
@@ -1439,8 +1569,11 @@ window.onload = function() {
       spriteContainer, animationManager);
   animationController.render();
   animationController.loadDefaultPreset();
-
   window.animationController = animationController;
+
+  var framesIndicator = new FramesIndicator(
+      document.getElementById('frames-indicator'));
+  animationManager.addAnimation(framesIndicator);
 
   animationManager.start();
 };
@@ -1457,7 +1590,8 @@ body {
   -webkit-user-select: none;
   display: inline-block;
 }
-.drop-list:hover, .drop-list.drop-list-open {
+.drop-list:hover,
+.drop-list.drop-list-open {
   background-color: white;
   border-color: #99f;
   border-top-color: #ccf;
@@ -1487,7 +1621,8 @@ body {
 .control-bar .drop-list-option {
   padding: 3px;
 }
-.control-bar, .bottom-control-bar {
+.control-bar,
+.bottom-control-bar {
   font-size: 11pt;
 }
 .control-bar {
@@ -1573,6 +1708,51 @@ body {
   cursor: pointer;
   color: #66e;
 }
+.frames-indicator {
+  font-size: 11pt;
+  position:fixed;
+  top: 10px;
+  right: 10px;
+  text-align: right;
+}
+.frames-indicator-ball {
+  display: inline-block;
+  border-radius: 10px;
+  width: 20px;
+  height: 20px;  
+  background-color: green;
+  vertical-align: top;
+}
+.frames-indicator-arrow {
+  width: 11px;
+  height: 10px;
+  background: url(images/dropdown-arrow.png) -5px -4px;
+  display: inline-block;
+}
+.frames-indicator-ball.warning {
+  background-color: orange;
+}
+.frames-indicator-ball.error {
+  background-color: red;
+}
+.frames-indicator table {
+  border-collapse: collapse;
+  background-color: #fff;
+  display: inline-block;
+  margin-right: 5px;
+  vertical-align: top;
+}
+.frames-indicator td {
+  text-align: right;
+  border: 1px solid #ccc;
+  padding: 1px 3px;
+}
+.frames-indicator td.warning {
+  color: orange;
+}
+.frames-indicator td.error {
+  color: red;
+}
 .animation-box {
   text-align: center;
   background-color: black;
@@ -1641,6 +1821,7 @@ body {
       </div>
       <div class="control-container"></div>
     </div>
+    <div id="frames-indicator" class="frames-indicator"></div>
     <div class="animation-box">
       <div id="animation-frame" class="animation-frame">
         <div id="animation-container" class="animation-container">
