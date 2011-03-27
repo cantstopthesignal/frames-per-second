@@ -1052,7 +1052,18 @@ AnimationController.prototype.addSpriteControl = function(control) {
   control.installSprite(this.spriteContainer, this.animationManager);
   this.spriteControls.push(control);
   this.positionSprites();
+  if (this.attributionsShown) {
+    control.showAttribution();
+  }
   return control;
+};
+
+AnimationController.prototype.clearControls = function() {
+  for (var i = 0; i < this.spriteControls.length; i++) {
+    this.spriteControls[i].dispose();
+  }
+  this.spriteControls = [];
+  this.controlContainerEl.innerHTML = "";
 };
 
 AnimationController.prototype.positionSprites = function() {
@@ -1108,6 +1119,7 @@ AnimationController.prototype.render = function() {
 };
 
 AnimationController.prototype.loadDefaultPreset = function() {
+  this.clearControls();
   this.addSpriteControl(new BackgroundSpriteControl(
       BACKGROUND_IMAGE_ASSETS, "River"))
       .setVelocity(100)
@@ -1121,6 +1133,57 @@ AnimationController.prototype.loadDefaultPreset = function() {
       .setVelocity(1000)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
+};
+
+AnimationController.prototype.load60Vs25Preset = function() {
+  this.clearControls();
+  this.addSpriteControl(new BackgroundSpriteControl(
+      BACKGROUND_IMAGE_ASSETS, "River"))
+      .setVelocity(100)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(true));
+};
+
+AnimationController.prototype.load25VsMotionBlurPreset = function() {
+  this.clearControls();
+  this.addSpriteControl(new BackgroundSpriteControl(
+      BACKGROUND_IMAGE_ASSETS, "River"))
+      .setVelocity(100)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(25)
+      .setMotionBlur(new MotionBlurConfig(false));
+};
+
+AnimationController.prototype.load60VsMotionBlurPreset = function() {
+  this.clearControls();
+  this.addSpriteControl(new BackgroundSpriteControl(
+      BACKGROUND_IMAGE_ASSETS, "River"))
+      .setVelocity(100)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+      .setVelocity(1000)
+      .setFramesPerSecond(60)
+      .setMotionBlur(new MotionBlurConfig(false));
 };
 
 AnimationController.prototype.handleAttributionsLinkClick_ = function() {
@@ -1169,6 +1232,16 @@ SpriteControl.prototype.getAnimation = function() {
 
 SpriteControl.prototype.getSprite = function() {
   return this.sprite;
+};
+
+SpriteControl.prototype.dispose = function() {
+  var spriteContainer = this.sprite.getContainer();
+  spriteContainer.removeSprite(this.sprite);
+  this.sprite = null;
+
+  var animationManager = this.animation.getManager();
+  animationManager.removeAnimation(this.animation);
+  this.animation = null;
 };
 
 SpriteControl.prototype.render = function(containerEl) {
@@ -1364,6 +1437,8 @@ window.onload = function() {
   animationController.render();
   animationController.loadDefaultPreset();
 
+  window.animationController = animationController;
+
   animationManager.start();
 };
     </script>
@@ -1511,6 +1586,9 @@ body {
   text-align: left;
   overflow: hidden;
 }
+.more-information {
+  padding: 0px 10px;
+}
 .spinner {
   background-color: black;
   height: 32px;
@@ -1571,6 +1649,43 @@ body {
       <div class="show-attributions">
         <a class="show-attributions-link">Show attributions</a>
       </div>
+    </div>
+    <div class="more-information">
+      Frame rate and motion blur are important aspects of
+      video quality.  This demo helps to show the visual differences
+      between various frame rates and motion blur.
+
+      <p>A few presets to try out:
+      <ul>
+        <li>
+          <a href="javascript:animationController.load60Vs25Preset();">
+            60 frames per second vs. 25 frames per second
+          </a>
+        <li>
+          <a href="javascript:animationController.load25VsMotionBlurPreset();">
+            25 frames per second with and without motion blur
+          </a>
+        <li>
+          <a href="javascript:animationController.load60VsMotionBlurPreset();">
+            60 frames per second with and without motion blur
+          </a>
+      </ul>
+
+      <p>Motion blur is a natural effect when you film the world in
+      discrete time intervals.  When a film is recorded at 25 frames
+      per second, each frame has an exposure time of up to 40 milliseconds (1/25 seconds).
+      All the changes in the scene over that entire 40 milliseconds will
+      blend into the final frame.  Without motion blur, animation will
+      appear to jump and will not look fluid.
+
+      <p>When the frame rate of a movie is too low, your mind will no
+      longer be convinced that the contents of the movie are
+      continuous, and the movie will appear to jump (also called
+      strobing).
+
+      <p>For more information about the history of frame rates, frame
+      rates in video games, etc., see the wikipedia article for
+      <a target="_blank" href="http://en.wikipedia.org/wiki/Frame_rate">Frame Rate</a>.
     </div>
   </body>
 </html>
