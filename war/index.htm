@@ -295,9 +295,7 @@ DropList.NAME_FIELD = "DLO-name";
 DropList.prototype.render = function(containerEl) {
   this.el = document.createElement("div");
   this.el.className = "drop-list";
-  this.el.tabIndex = -1;
   this.el.onclick = goog.bind(this.handleClick_, this);
-  this.el.onblur = goog.bind(this.setOpen, this, false);
 
   this.selectedEl = document.createElement("div");
   this.selectedEl.className = "drop-list-selected";
@@ -310,6 +308,8 @@ DropList.prototype.render = function(containerEl) {
   this.listEl = document.createElement("div");
   this.listEl.className = "drop-list-list";
   this.listEl.style.display = "none";
+  this.listEl.tabIndex = -1;
+  this.listEl.onblur = goog.bind(this.setOpen, this, false);
   this.el.appendChild(this.listEl);
 
   containerEl.appendChild(this.el);
@@ -365,10 +365,12 @@ DropList.prototype.setOpen = function(open) {
     this.open = open;
     if (this.open) {
       this.listEl.style.minWidth = this.el.offsetWidth + "px";
-      this.el.focus();
     }
     goog.dom.classes.enable(this.el, "drop-list-open", this.open);
     this.listEl.style.display = this.open ? "" : "none";
+    if (this.open) {
+      this.listEl.focus();
+    }
   }
 };
 
@@ -1451,7 +1453,6 @@ body {
 .drop-list {
   border: 1px solid transparent;
   cursor: default;
-  outline: none;
   -webkit-user-select: none;
   display: inline-block;
 }
@@ -1473,7 +1474,7 @@ body {
 .drop-list-list {
   position: absolute;
   margin-top: 1px;
-  x-border: 1px solid black;
+  outline: none;
   background-color: white;
   box-shadow: 0px 5px 15px #000;
   -webkit-box-shadow: 0px 5px 15px #000;
