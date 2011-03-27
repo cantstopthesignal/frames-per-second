@@ -6,7 +6,7 @@
     <script type="text/javascript">
 
 /* 
- *The following goog.* methods are adapted from the Google closure toolkit 
+ * The following goog.* methods are adapted from the Google closure toolkit 
  * See http://closure-library.googlecode.com/ for the full closure library
  */
 var goog = {};
@@ -377,8 +377,18 @@ Spinner = function() {
   goog.dom.classes.add(this.el, "spinner");
   document.body.appendChild(this.el);
 
+  var imgEl = document.createElement("img");
+  imgEl.src = "images/spinner-black.gif";
+  goog.dom.classes.add(imgEl, "spinner-img");
+  this.el.appendChild(imgEl);
+  
+  this.messageEl = document.createElement("div");
+  goog.dom.classes.add(this.messageEl, "spinner-message");
+  this.el.appendChild(this.messageEl);
+
   this.spinDisplayed = false;
   this.spinDepth = 0;
+  this.message;
   this.spinTimeout;
 };
 
@@ -389,11 +399,14 @@ Spinner.getInstance = function() {
   return Spinner.instance;
 }
 
-Spinner.prototype.spin = function(spin, opt_delay) {
+Spinner.prototype.spin = function(spin, opt_delay, opt_message) {
   if (spin) {
     this.spinDepth++;
   } else {
     this.spinDepth--;
+  }
+  if (spin) {
+    this.message = opt_message;
   }
   if (spin && opt_delay && this.spinDepth == 1) {
     if (!this.spinTimeout) {
@@ -413,7 +426,14 @@ Spinner.prototype.handleTimeout = function() {
 };
 
 Spinner.prototype.updateDisplay = function() {
-  this.el.style.display = this.spinDisplayed ? "block" : "none";
+  this.el.style.display = this.spinDisplayed ? "" : "none";
+  this.messageEl.style.display = this.message ? "" : "none";
+  if (this.message) {
+    this.messageEl.innerHTML = "";
+    this.messageEl.appendChild(document.createTextNode(this.message));
+  }
+  this.el.style.marginLeft = -(this.el.offsetWidth/2) + "px";
+  this.el.style.marginTop = -(this.el.offsetHeight/2) + "px";
 };
 
 AnimationManager = function() {
@@ -877,8 +897,8 @@ ImageSprite.prototype.drawMotionBlur = function() {
   var points = this.motionBlurSpec.getPoints();
   var numPoints = points.length;
 
-  Spinner.getInstance().spin(true, 100);
-
+  Spinner.getInstance().spin(true, 100, "Generating motion blur...");
+  
   var leftOffset = this.leftOffset;
   var topOffset = this.topOffset;
   var canvasWidth = this.canvasWidth;
@@ -999,7 +1019,7 @@ STANDARD_FRAMES_PER_SECONDS = [
 ];
 
 STANDARD_VELOCITY_PER_SECONDS = [
-  50, 100, 200, 500, 1000, 2000
+  0, 50, 100, 200, 500, 1000, 2000
 ];
 
 STANDARD_MOTION_BLURS = [
@@ -1349,6 +1369,7 @@ window.onload = function() {
     </script>
     <style type="text/css">
 body {
+  font-family: Arial;
   margin: 0px;
   padding: 0px;
 }
@@ -1390,7 +1411,6 @@ body {
   padding: 3px;
 }
 .control-bar, .bottom-control-bar {
-  font-family: Arial;
   font-size: 11pt;
 }
 .control-bar {
@@ -1492,19 +1512,31 @@ body {
   overflow: hidden;
 }
 .spinner {
-  background: white url(images/spinner.gif) no-repeat 20px 10px;
-  width: 32px;
+  background-color: black;
   height: 32px;
   position: absolute;
   left: 50%;
   top: 50%;
-  margin-left: -30px;
-  margin-top: -25px;
   padding: 10px 20px;
   border: 1px solid black;
   border-radius: 15px;
   box-shadow: 0px 5px 10px #000;
   -webkit-box-shadow: 0px 5px 10px #000;
+  overflow: hidden;
+}
+.spinner-img {
+  width: 48px;
+  height: 48px;
+  margin-left: -10px;
+  margin-top: -5px;
+  margin-bottom: -5px;
+  vertical-align: middle;
+}
+.spinner-message {
+  color: white;
+  display: inline;
+  padding-left: 5px;
+  vertical-align: middle;
 }
    </style>
   </head>
