@@ -829,23 +829,37 @@ BackgroundBounceAnimation.prototype.handleLoad = function() {
   this.setRange(-distance, 0);
 };
 
-ScreenRefreshRateTester = function() {
+DetectRefreshRates = function() {
   this.onstatechange = new EventHost();
   this.javaDeployScript = null;
-  this.state = ScreenRefreshRateTester.State.NONE;
+  this.state = DetectRefreshRates.State.NONE;
   this.screenRefreshRates = null;
+  this.startLookupOnFrameLoad = false;
+
+  this.iframe = document.createElement("iframe");
+  this.iframe.style.visibility = "hidden";
+  this.iframe.style.width = "0px";
+  this.iframe.style.height = "0px";
+  this.iframe.style.position = "absolute";
+  this.iframe.style.left = "0px";
+  this.iframe.style.top = "0px";
+  this.iframe.setAttribute("src", "blank.htm");
+  this.iframe.addEventListener("load",
+      goog.bind(this.handleFrameLoad, this), false);
+  document.body.appendChild(this.iframe);
+  this.frameLoaded = false;
 };
 
-ScreenRefreshRateTester.getInstance = function() {
-  if (ScreenRefreshRateTester.instance == null) {
-    ScreenRefreshRateTester.instance = new ScreenRefreshRateTester();
+DetectRefreshRates.getInstance = function() {
+  if (DetectRefreshRates.instance == null) {
+    DetectRefreshRates.instance = new DetectRefreshRates();
   }
-  return ScreenRefreshRateTester.instance;
+  return DetectRefreshRates.instance;
 };
 
-ScreenRefreshRateTester.JAVA_VERSION_MATCHER = "1.5+";
+DetectRefreshRates.JAVA_VERSION_MATCHER = "1.5+";
 
-ScreenRefreshRateTester.State = {
+DetectRefreshRates.State = {
   NONE: 'NONE',
   CHECKING_JAVA: 'CHECKING_JAVA',
   CHECKING_JAVA_ERROR: 'CHECKING_JAVA_ERROR',
@@ -855,68 +869,81 @@ ScreenRefreshRateTester.State = {
   COMPLETE: 'COMPLETE'
 };
 
-ScreenRefreshRateTester.prototype.startLookup = function() {
-  goog.asserts.assert(this.state == ScreenRefreshRateTester.State.NONE,
+DetectRefreshRates.prototype.startLookup = function() {
+  goog.asserts.assert(this.state == DetectRefreshRates.State.NONE,
       'Unexpected state: ' + this.state);
-  this.javaDeployScript = document.createElement('script');
+  if (!this.frameLoaded) {
+    this.startLookupOnFrameLoad = true;
+    return;
+  }
+  this.javaDeployScript = this.frameDocument.createElement('script');
   this.javaDeployScript.setAttribute('type', 'text/javascript');
   this.javaDeployScript.setAttribute('src', 'http://java.com/js/deployJava.js');
   this.javaDeployScript.addEventListener('load',
       goog.bind(this.handleJavaDeployLoad, this), false);
   this.javaDeployScript.addEventListener('error',
       goog.bind(this.handleJavaDeployError, this), false);
-  this.stateChange(ScreenRefreshRateTester.State.CHECKING_JAVA);
-  document.getElementsByTagName('head')[0].appendChild(this.javaDeployScript);
+  this.stateChange(DetectRefreshRates.State.CHECKING_JAVA);
+  this.frameDocument.getElementsByTagName('head')[0].appendChild(this.javaDeployScript);
 };
 
-ScreenRefreshRateTester.prototype.getState = function() {
+DetectRefreshRates.prototype.getState = function() {
   return this.state;
 };
 
-ScreenRefreshRateTester.prototype.stateChange = function(newState) {
+DetectRefreshRates.prototype.stateChange = function(newState) {
   this.state = newState;
   this.onstatechange.fire(this.state);
 };
 
-ScreenRefreshRateTester.prototype.getScreenRefreshRates = function() {
+DetectRefreshRates.prototype.getScreenRefreshRates = function() {
   return this.screenRefreshRates;
 };
 
-ScreenRefreshRateTester.prototype.handleJavaDeployLoad = function(e) {
-  this.javaDeploy = window['deployJava'];
+DetectRefreshRates.prototype.handleFrameLoad = function() {
+  this.frameLoaded = true;
+  this.frameWindow = this.iframe.contentWindow;
+  this.frameDocument = this.iframe.contentDocument;
+  if (this.startLookupOnFrameLoad) {
+    this.startLookup();
+  }
+};
+
+DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
+  this.javaDeploy = this.frameWindow['deployJava'];
   goog.asserts.assert(this.javaDeploy, 'deployJava object expected');
 
   this.javaDeploy.returnPage = window.location.href;
 
-  if (!this.javaDeploy.versionCheck(ScreenRefreshRateTester.JAVA_VERSION_MATCHER)) {
-    this.stateChange(ScreenRefreshRateTester.State.JAVA_MISSING);
+  if (!this.javaDeploy.versionCheck(DetectRefreshRates.JAVA_VERSION_MATCHER)) {
+    this.stateChange(DetectRefreshRates.State.JAVA_MISSING);
     return;
   }
 
-  this.applet = document.createElement('applet');
+  this.applet = this.frameDocument.createElement('applet');
   this.applet.setAttribute('codebase', 'applet');
   this.applet.setAttribute('archive', 'DetectRefreshRates.jar');
   this.applet.setAttribute('code', 'DetectRefreshRates.class');
   this.applet.setAttribute('width', '0');
   this.applet.setAttribute('height', '0');
 
-  var param = document.createElement('param');
+  var param = this.frameDocument.createElement('param');
   param.setAttribute('name', 'codebase_lookup');
   param.setAttribute('value', 'false');
   this.applet.appendChild(param);
 
-  document.body.appendChild(this.applet);
-  this.stateChange(ScreenRefreshRateTester.State.LOADING_APPLET);
+  this.frameDocument.body.appendChild(this.applet);
+  this.stateChange(DetectRefreshRates.State.LOADING_APPLET);
 
   this.appletPollInterval = window.setInterval(goog.bind(this.handleAppletPoll, this), 500);
   this.appletPollStartTimeMs = (new Date()).getTime();
 };
 
-ScreenRefreshRateTester.prototype.installJava = function() {
-  this.javaDeploy.installJRE(ScreenRefreshRateTester.JAVA_VERSION_MATCHER);
+DetectRefreshRates.prototype.installJava = function() {
+  this.javaDeploy.installJRE(DetectRefreshRates.JAVA_VERSION_MATCHER);
 };
 
-ScreenRefreshRateTester.prototype.handleAppletPoll = function() {
+DetectRefreshRates.prototype.handleAppletPoll = function() {
   var nowTime = (new Date()).getTime();
   if (!this.applet.getRefreshRates
       && nowTime < this.appletPollStartTimeMs + 60 * 1000) {
@@ -926,14 +953,14 @@ ScreenRefreshRateTester.prototype.handleAppletPoll = function() {
 
   if (this.applet.getRefreshRates) {
     this.screenRefreshRates = this.applet.getRefreshRates().split(",");
-    this.stateChange(ScreenRefreshRateTester.State.COMPLETE);
+    this.stateChange(DetectRefreshRates.State.COMPLETE);
   } else {
-    this.stateChange(ScreenRefreshRateTester.State.LOADING_APPLET_TIMEOUT);
+    this.stateChange(DetectRefreshRates.State.LOADING_APPLET_TIMEOUT);
   }
 };
 
-ScreenRefreshRateTester.prototype.handleJavaDeployError = function(e) {
-  this.stateChange(ScreenRefreshRateTester.State.CHECKING_JAVA_ERROR);
+DetectRefreshRates.prototype.handleJavaDeployError = function(e) {
+  this.stateChange(DetectRefreshRates.State.CHECKING_JAVA_ERROR);
 };
 
 VideoSizes = {
@@ -1705,8 +1732,8 @@ LargeFpsWarning = function() {
   this.checkUsingJava = false;
   this.installJava = false;
 
-  this.refreshRateTester = ScreenRefreshRateTester.getInstance();
-  this.refreshRateTester.onstatechange.addListener(
+  this.refreshRateDetector = DetectRefreshRates.getInstance();
+  this.refreshRateDetector.onstatechange.addListener(
       goog.bind(this.handleRefreshRateTesterState, this));
 };
 
@@ -1741,15 +1768,15 @@ LargeFpsWarning.prototype.updateDisplay = function() {
         goog.bind(this.handleCheckUsingJavaClick, this), false);
     this.buttonContainerEl.appendChild(javaButton);
   } else {
-    var State = ScreenRefreshRateTester.State;
-    var state = this.refreshRateTester.getState();
+    var State = DetectRefreshRates.State;
+    var state = this.refreshRateDetector.getState();
     if (state == State.CHECKING_JAVA) {
       message = "Checking java version...";
     } else if (state == State.CHECKING_JAVA_ERROR) {
       message = "Error while checking for installed java version";
     } else if (state == State.JAVA_MISSING) {
       message = "You do not appear to java " +
-          ScreenRefreshRateTester.JAVA_VERSION_MATCHER +
+          DetectRefreshRates.JAVA_VERSION_MATCHER +
           " installed.";
       var javaInstallButton = document.createElement('button');
       javaInstallButton.appendChild(document.createTextNode(
@@ -1762,7 +1789,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
     } else if (state == State.LOADING_APPLET_TIMEOUT) {
       message = "Timed out while waiting for applet to load.";
     } else if (state == State.COMPLETE) {
-      var refreshRates = this.refreshRateTester.getScreenRefreshRates();
+      var refreshRates = this.refreshRateDetector.getScreenRefreshRates();
       var knownRefreshRates = [];
       for (var i = 0; i < refreshRates.length; i++) {
         var refreshRate = parseInt(refreshRates[i]);
@@ -1772,11 +1799,11 @@ LargeFpsWarning.prototype.updateDisplay = function() {
       }
       if (knownRefreshRates.length == 1) {
         message = 'Your monitor(s) are running at a refresh rate of ' +
-            knownRefreshRates[0] + '.  The animations in this demo should work up to ' +
+            knownRefreshRates[0] + ' Hz.  The animations in this demo should work up to ' +
             knownRefreshRates[0] + ' frames per second.';
       } else if (knownRefreshRates.length > 1) {
         message = 'Your monitors are running at the refresh rates of ' +
-            knownRefreshRates.join(', ') + '.  The animations in this demo should work ' + 
+            knownRefreshRates.join(', ') + ' Hz.  The animations in this demo should work ' + 
             'up to these levels depending on which monitor your browser is in.';
       } else {
         message = 'The applet loaded but your monitor\'s refresh rate could not be ' + 
@@ -1803,13 +1830,13 @@ LargeFpsWarning.prototype.updateDisplay = function() {
 
 LargeFpsWarning.prototype.handleCheckUsingJavaClick = function() {
   this.checkUsingJava = true;
-  this.refreshRateTester.startLookup();
+  this.refreshRateDetector.startLookup();
   this.updateDisplay();
 };
 
 LargeFpsWarning.prototype.handleInstallJavaClick = function() {
   this.installJava = true;
-  this.refreshRateTester.installJava();
+  this.refreshRateDetector.installJava();
   this.updateDisplay();
 };
 
