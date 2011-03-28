@@ -1370,10 +1370,11 @@ AnimationController = function(el, bottomEl, spriteContainer, animationManager) 
 };
 
 AnimationController.prototype.addSpriteControl = function(control) {
-  if (this.controlContainerEl.childNodes.length) {
-    this.addSpacer();
+  var controlEl = control.render(this.controlContainerEl);
+  this.controlContainerEl.insertBefore(controlEl, this.addControlButtonEl);
+  if (this.spriteControls.length) {
+    this.addSpacerBefore(controlEl);
   }
-  control.render(this.controlContainerEl);
   control.installSprite(this, this.spriteContainer, this.animationManager);
   this.spriteControls.push(control);
   this.positionSprites();
@@ -1384,21 +1385,23 @@ AnimationController.prototype.addSpriteControl = function(control) {
 };
 
 AnimationController.prototype.removeSpriteControl = function(control) {
-  var spacerEl = control.el.previousSibling;
+  var index = this.spriteControls.indexOf(control);
+  var prevEl = control.el.previousSibling;
+  var nextEl = control.el.nextSibling;
   control.dispose();
-  if (spacerEl && goog.dom.classes.has(spacerEl, 'spacer')) {
-    spacerEl.parentNode.removeChild(spacerEl);
+  if (index == 0 && nextEl && goog.dom.classes.has(nextEl, 'spacer')) {
+    nextEl.parentNode.removeChild(nextEl);
+  } else if (prevEl && goog.dom.classes.has(prevEl, 'spacer')) {
+    prevEl.parentNode.removeChild(prevEl);
   }
-  this.spriteControls.splice(this.spriteControls.indexOf(control), 1);
+  this.spriteControls.splice(index, 1);
   this.positionSprites();
 };
 
 AnimationController.prototype.clearControls = function() {
-  for (var i = 0; i < this.spriteControls.length; i++) {
-    this.spriteControls[i].dispose();
+  while (this.spriteControls.length) {
+    this.removeSpriteControl(this.spriteControls[0]);
   }
-  this.spriteControls = [];
-  this.controlContainerEl.innerHTML = '';
 };
 
 AnimationController.prototype.positionSprites = function() {
@@ -1424,7 +1427,7 @@ AnimationController.prototype.positionSprites = function() {
   }
 };
 
-AnimationController.prototype.addSpacer = function() {
+AnimationController.prototype.addSpacerBefore = function(beforeEl) {
   var spacerEl = document.createElement('div');
   spacerEl.className = 'spacer';
   for (var i = 0; i < 5; i++) {
@@ -1440,7 +1443,7 @@ AnimationController.prototype.addSpacer = function() {
     rowEl.innerHTML = '&nbsp;';
     spacerEl.appendChild(rowEl);
   }
-  this.controlContainerEl.appendChild(spacerEl);
+  this.controlContainerEl.insertBefore(spacerEl, beforeEl);
 };
 
 AnimationController.prototype.render = function() {
@@ -1634,7 +1637,7 @@ SpriteControl.prototype.dispose = function() {
   this.controller = null;
 };
 
-SpriteControl.prototype.render = function(containerEl) {
+SpriteControl.prototype.render = function() {
   this.el = document.createElement('div');
   this.el.className = 'sprite';
 
@@ -1720,7 +1723,7 @@ SpriteControl.prototype.render = function(containerEl) {
   this.velocityDropList.onchange.addListener(goog.bind(this.handleVelocityChange_, this));
   this.el.appendChild(velocityCell);
 
-  containerEl.appendChild(this.el);
+  return this.el;
 };
 
 SpriteControl.prototype.showAttribution = function() {
@@ -2039,6 +2042,7 @@ body {
 }
 .control-bar {
   margin: 10px;
+  margin-bottom: 0;
 }
 .control-bar .control-container {
   display: inline-block;
@@ -2072,6 +2076,8 @@ body {
 }
 .control-bar .control-add {
   margin-left: 15px;
+  margin-bottom: 10px;
+  vertical-align: top;
 }
 .control-bar .control-remove-container {
   float: right;
@@ -2105,6 +2111,7 @@ body {
   display: inline-block;
   vertical-align: top;
   border-top: 2px solid transparent;
+  margin-bottom: 10px;
 }
 .control-bar .desc .control-row {
   text-align: right;
@@ -2127,6 +2134,7 @@ body {
   border-color: #ddf;
   border-radius: 10px;
   min-width: 125px;
+  margin-bottom: 10px;
 }
 .control-bar .sprite .title-cell img {
   width: 32px;
@@ -2285,25 +2293,25 @@ body {
   </head>
   <body>
     <div id="control-bar" class="control-bar">
-      <div class="desc">
-        <div class="title-cell control-row">
-          <span>Asset</span>
-        </div>
-        <div class="attribution-cell control-row" style="display: none">
-          <span>Attribution</span>
-        </div>
-        <div class="fps-cell control-row">
-          <span>Frames per second</span>
-        </div>
-        <div class="motion-blur-cell control-row">
-          <span>Motion blur</span>
-        </div>
-        <div class="velocity-cell control-row">
-          <span>Velocity</span>
-        </div>
+      <div class="control-container">
+        <div class="desc">
+          <div class="title-cell control-row">
+            <span>Asset</span>
+          </div>
+          <div class="attribution-cell control-row" style="display: none">
+            <span>Attribution</span>
+          </div>
+          <div class="fps-cell control-row">
+            <span>Frames per second</span>
+          </div>
+          <div class="motion-blur-cell control-row">
+            <span>Motion blur</span>
+          </div>
+          <div class="velocity-cell control-row">
+            <span>Velocity</span>
+          </div>
+        </div><div class="control-add"><span>+</span></div>
       </div>
-      <div class="control-container"></div>
-      <div class="control-add"><span>+</span></div>
     </div>
     <div id="frames-indicator" class="frames-indicator"></div>
     <div class="animation-box">
