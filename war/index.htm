@@ -1101,7 +1101,11 @@ Sprite.prototype.setMotionBlur = function(motionBlurSpec) {
 ImageSprite = function(imgSrc, opt_width, opt_height) {
   Sprite.call(this);
   this.img = new Image();
-  this.img.addEventListener('load', goog.bind(this.handleLoad, this), false);
+  this.img.addEventListener('load', goog.bind(function() {
+    // Delay the handling of the onload event to work around an IE9 image
+    // loading bug.
+    window.setTimeout(goog.bind(this.handleLoad, this), 1);
+  }, this), false);
   this.imgLoadSpin = Spinner.getInstance().spin(100, 'Loading image...');
   this.imgWidth = opt_width;
   this.imgHeight = opt_height;
@@ -1140,7 +1144,7 @@ ImageSprite.prototype.handleLoad = function() {
     // There appears to be a bug in IE9's canvas and image handling.  It is possible
     // for an image to have been loaded but when drawn to a canvas to produce no
     // content.  In this case, simply stall using setTimeout and try again.
-    window.setTimeout(goog.bind(this.handleLoad, this), 1);
+    window.setTimeout(goog.bind(this.handleLoad, this), 100);
     return;
   }
 
