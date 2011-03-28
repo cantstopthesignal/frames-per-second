@@ -859,20 +859,8 @@ DetectRefreshRates = function() {
   this.window = window;
   this.document = document;
 
-  this.iframe = this.document.createElement("iframe");
-  this.iframe.style.visibility = "hidden";
-  this.iframe.style.width = "0px";
-  this.iframe.style.height = "0px";
-  this.iframe.style.position = "absolute";
-  this.iframe.style.left = "0px";
-  this.iframe.style.top = "0px";
-  this.iframe.setAttribute("src", "blank.htm");
-  this.iframe.addEventListener("load",
-      goog.bind(this.handleFrameLoad, this), false);
-  this.frameDocument = null;
-  this.frameWindow = null;
-  this.document.body.appendChild(this.iframe);
-  this.frameLoaded = false;
+  this.iframe = null;
+  this.frameDetectRefreshRates = null;
 };
 
 DetectRefreshRates.getInstance = function() {
@@ -886,8 +874,8 @@ DetectRefreshRates.JAVA_VERSION_MATCHER = "1.5+";
 
 DetectRefreshRates.State = {
   NONE: 'NONE',
-  CHECKING_JAVA: 'CHECKING_JAVA',
-  CHECKING_JAVA_ERROR: 'CHECKING_JAVA_ERROR',
+  LOADING_JAVA: 'LOADING_JAVA',
+  LOADING_JAVA_ERROR: 'LOADING_JAVA_ERROR',
   JAVA_MISSING: 'JAVA_MISSING',
   LOADING_APPLET: 'LOADING_APPLET',
   LOADING_APPLET_TIMEOUT: 'LOADING_APPLET_TIMEOUT',
@@ -897,38 +885,46 @@ DetectRefreshRates.State = {
 DetectRefreshRates.prototype.startLookup = function() {
   goog.asserts.assert(this.state == DetectRefreshRates.State.NONE,
       'Unexpected state: ' + this.state);
-  if (!this.frameLoaded) {
-    this.startLookupOnFrameLoad = true;
+
+  if (this.iframe) {
     return;
   }
-  this.stateChange(DetectRefreshRates.State.CHECKING_JAVA);
 
   var count = 0;
   var failed = false;
   function onSuccess() {
     ++count;
     if (count == 2) {
-      this.handleJavaDeployLoad();
+      this.handleJavaLoad();
     }
   };
   function onFailure() {
     if (!failed) {
       failed = true;
-      this.handleJavaDeployError();
+      this.handleJavaError();
     }
   };
 
-  this.loadJavaDeploy(this.frameDocument, onSuccess, onFailure, this);
-  this.loadJavaDeploy(this.document, onSuccess, onFailure, this);
-};
+  this.stateChange(DetectRefreshRates.State.LOADING_JAVA);
 
-DetectRefreshRates.prototype.loadJavaDeploy = function(doc, onSuccess, onFailure, opt_scope) {
-  var script = doc.createElement('script');
+  this.iframe = this.document.createElement("iframe");
+  this.iframe.style.visibility = "hidden";
+  this.iframe.style.width = "0px";
+  this.iframe.style.height = "0px";
+  this.iframe.style.position = "absolute";
+  this.iframe.style.left = "0px";
+  this.iframe.style.top = "0px";
+  this.iframe.setAttribute("src", "detect-refresh-rates.htm");
+  this.iframe.addEventListener("load", goog.bind(onSuccess, this), false);
+  this.iframe.addEventListener("error", goog.bind(onFailure, this), false);
+  this.document.body.appendChild(this.iframe);
+
+  var script = this.document.createElement('script');
   script.setAttribute('type', 'text/javascript');
   script.setAttribute('src', 'http://java.com/js/deployJava.js');
-  script.addEventListener('load', goog.bind(onSuccess, opt_scope), false);
-  script.addEventListener('error', goog.bind(onFailure, opt_scope), false);
-  doc.getElementsByTagName('head')[0].appendChild(script);
+  script.addEventListener('load', goog.bind(onSuccess, this), false);
+  script.addEventListener('error', goog.bind(onFailure, this), false);
+  this.document.getElementsByTagName('head')[0].appendChild(script);
 };
 
 DetectRefreshRates.prototype.getState = function() {
@@ -944,28 +940,16 @@ DetectRefreshRates.prototype.getScreenRefreshRates = function() {
   return this.screenRefreshRates;
 };
 
-DetectRefreshRates.prototype.handleFrameLoad = function() {
-  this.frameLoaded = true;
-  this.frameWindow = this.iframe.contentWindow;
-  this.frameDocument = this.iframe.contentDocument;
-  if (this.startLookupOnFrameLoad) {
-    this.startLookup();
-  }
-};
-
-DetectRefreshRates.prototype.getApplet = function() {
-  return this.frameDocument.applets[0];
-};
-
-DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
+DetectRefreshRates.prototype.handleJavaLoad = function(e) {
+  this.frameDetectRefreshRates = this.iframe.contentWindow['detectRefreshRates'];
   this.javaDeploy = this.window['deployJava'];
-  this.frameJavaDeploy = this.frameWindow['deployJava'];
-  goog.asserts.assert(this.javaDeploy && this.frameJavaDeploy,
-      'Expected deployJava to have loaded');
+
+  goog.asserts.assert(this.javaDeploy && this.frameDetectRefreshRates,
+      'Expected javaDeploy and frameDetectRefreshRates to have loaded');
 
   this.javaDeploy.returnPage = this.window.location.href;
 
-  if (!this.frameJavaDeploy.versionCheck(DetectRefreshRates.JAVA_VERSION_MATCHER)) {
+  if (this.frameDetectRefreshRates.getJavaMissing()) {
     this.stateChange(DetectRefreshRates.State.JAVA_MISSING);
     return;
   }
@@ -973,13 +957,6 @@ DetectRefreshRates.prototype.handleJavaDeployLoad = function(e) {
   this.stateChange(DetectRefreshRates.State.LOADING_APPLET);
   this.appletPollInterval = this.window.setInterval(goog.bind(this.handleAppletPoll, this), 500);
   this.appletPollStartTimeMs = (new Date()).getTime();
-
-  this.frameJavaDeploy.runApplet({
-    codebase:'applet',
-    code:'DetectRefreshRates.class',
-    archive:'DetectRefreshRates.jar',
-    width:0, height:0
-  }, {}, '1.5');
 };
 
 DetectRefreshRates.prototype.installJava = function() {
@@ -988,22 +965,22 @@ DetectRefreshRates.prototype.installJava = function() {
 
 DetectRefreshRates.prototype.handleAppletPoll = function() {
   var nowTime = (new Date()).getTime();
-  if (!this.getApplet().getRefreshRates
-      && nowTime < this.appletPollStartTimeMs + 60 * 1000) {
+  var refreshRates = this.frameDetectRefreshRates.getRefreshRates();
+  if (!refreshRates && nowTime < this.appletPollStartTimeMs + 60 * 1000) {
     return;
   }
   this.window.clearInterval(this.appletPollInterval);
 
-  if (this.getApplet().getRefreshRates) {
-    this.screenRefreshRates = this.getApplet().getRefreshRates().split(",");
+  if (refreshRates) {
+    this.screenRefreshRates = refreshRates;
     this.stateChange(DetectRefreshRates.State.COMPLETE);
   } else {
     this.stateChange(DetectRefreshRates.State.LOADING_APPLET_TIMEOUT);
   }
 };
 
-DetectRefreshRates.prototype.handleJavaDeployError = function(e) {
-  this.stateChange(DetectRefreshRates.State.CHECKING_JAVA_ERROR);
+DetectRefreshRates.prototype.handleJavaError = function(e) {
+  this.stateChange(DetectRefreshRates.State.LOADING_JAVA_ERROR);
 };
 
 VideoSizes = {
@@ -1815,10 +1792,10 @@ LargeFpsWarning.prototype.updateDisplay = function() {
   } else {
     var State = DetectRefreshRates.State;
     var state = this.refreshRateDetector.getState();
-    if (state == State.CHECKING_JAVA) {
-      message = "Checking java version...";
-    } else if (state == State.CHECKING_JAVA_ERROR) {
-      message = "Error while checking for installed java version";
+    if (state == State.LOADING_JAVA) {
+      message = "Loading java...";
+    } else if (state == State.LOADING_JAVA_ERROR) {
+      message = "Error while loading java";
     } else if (state == State.JAVA_MISSING) {
       message = "You do not appear to java " +
           DetectRefreshRates.JAVA_VERSION_MATCHER +

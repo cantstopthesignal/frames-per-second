@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="http://java.com/js/deployJava.js"></script>
+    <script>
+
+DetectRefreshRates = function() {
+  this.javaMissing = false;
+};
+
+DetectRefreshRates.prototype.setJavaMissing = function(javaMissing) {
+  this.javaMissing = javaMissing;
+};
+
+DetectRefreshRates.prototype.getApplet = function() {
+  for (var i = 0; i < document.applets.length; i++) {
+    var applet = document.applets[i];
+    if (applet.code == 'DetectRefreshRates.class') {
+      return applet;
+    }
+  }
+};
+
+DetectRefreshRates.prototype.getJavaMissing = function() {
+  return this.javaMissing;
+};
+
+DetectRefreshRates.prototype.getRefreshRates = function() {
+  var applet = this.getApplet();
+  if (applet && 'getRefreshRates' in applet) {
+    return applet.getRefreshRates().split(",");
+  }
+};
+
+window['detectRefreshRates'] = new DetectRefreshRates();
+
+if (deployJava.versionCheck('1.5+')) {
+  deployJava.runApplet({
+      codebase:'applet',
+      code:'DetectRefreshRates.class',
+      archive:'DetectRefreshRates.jar',
+      width:100, height:100
+  }, {}, '1.5');
+} else {
+  detectRefreshRates.setJavaMissing(true);
+}
+
+    </script>
+  </head>
+</html>
