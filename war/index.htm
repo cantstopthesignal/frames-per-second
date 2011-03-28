@@ -1436,7 +1436,7 @@ AnimationController.prototype.addSpacerBefore = function(beforeEl) {
       rowEl.className = 'title-cell control-row';
     } else if (i == 1) {
       rowEl.className = 'attribution-cell control-row';
-      rowEl.style.display = this.showAttributions ? '' : 'none';
+      rowEl.style.display = this.attributionsShown ? '' : 'none';
     } else {
       rowEl.className = 'control-row';
     }
