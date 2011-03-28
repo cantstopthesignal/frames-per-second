@@ -2193,6 +2193,9 @@ BrowserVersionWarning.prototype.check = function() {
   } else if (goog.userAgent.IE &&
       goog.string.compareVersions(goog.userAgent.VERSION, '9') >= 0) {
     supported = true;
+  } else if (goog.userAgent.OPERA &&
+      goog.string.compareVersions(goog.userAgent.VERSION, '11') >= 0) {
+    supported = true;
   }
   if (!supported) {
     this.show();
@@ -2210,7 +2213,8 @@ BrowserVersionWarning.prototype.hide = function() {
 
 BrowserVersionWarning.prototype.updateDisplay = function() {
   var message = 'Your browser may not be supported by this tool.  Tested ' +
-      'browsers include Safari 5, Chrome, Firefox 3.6+ and IE9.';
+      'browsers include Chrome, Firefox 3.6+, Internet Explorer 9, ' +
+      'Safari 5, and Opera 11.';
 
   this.buttonContainerEl.innerHTML = '';
 
@@ -2257,7 +2261,7 @@ window.addEventListener('load', function() {
     <style type="text/css">
 body {
   font-family: Arial;
-  font-size 16px;
+  font-size: 16px;
   margin: 0px;
   padding: 0px;
 }
