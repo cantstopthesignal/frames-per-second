@@ -1877,10 +1877,10 @@ LargeFpsWarning.prototype.handleRefreshRateTesterState = function() {
 };
 
 LargeFpsWarning.prototype.updateDisplay = function() {
-  var message = 'You have chosen an animation rate that is larger than 60 ' +
-      'frames per second. Many computer monitors are limited to a refresh ' +
+  var message = 'You have chosen an animation rate that is faster than 60 ' +
+      'frames per second. Many computer monitors default to a refresh ' +
       'rate of 60 Hz. Animations faster than the native refresh rate ' +
-      'will not appear smoother.';
+      'will not appear visibly smoother.';
 
   this.buttonContainerEl.innerHTML = '';
 
@@ -1888,7 +1888,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
     message = 'In a moment you should be redirected to install java...';
   } else if (!this.checkUsingJava) {
     var javaButton = document.createElement('button');
-    javaButton.innerHTML = '<span>Find my monitor\'s refresh rate using java</span>';
+    javaButton.innerHTML = '<span>Look up my monitor\'s refresh rate using java</span>';
     javaButton.addEventListener('click',
         goog.bind(this.handleCheckUsingJavaClick, this), false);
     this.buttonContainerEl.appendChild(javaButton);
@@ -1900,7 +1900,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
     } else if (state == State.LOADING_JAVA_ERROR) {
       message = 'Error while loading java';
     } else if (state == State.JAVA_MISSING) {
-      message = 'You do not appear to java ' +
+      message = 'You do not appear to have java ' +
           DetectRefreshRates.JAVA_VERSION_MATCHER +
           ' installed.';
       var javaInstallButton = document.createElement('button');
@@ -1931,8 +1931,9 @@ LargeFpsWarning.prototype.updateDisplay = function() {
             'up to these levels depending on which monitor your browser is in.';
       } else {
         message = 'The applet loaded but your monitor\'s refresh rate could not be ' + 
-            'determined.  This typically means your monitor is running at 60 Hz. ' +
-            'As such, the animations in this demo should work up to 60 frames per second.';
+            'determined. If you are using an LCD monitor you are most likely running at ' +
+            '60 Hz. As such, the animations in this demo should work up to 60 frames per ' +
+            'second.';
       }
     } else {
       throw new Error('Unexpected state: ' + state);
@@ -2306,8 +2307,7 @@ body {
           <div class="velocity-cell control-row">
             <span>Velocity</span>
           </div>
-        </div>
-        <div class="control-add"></div>
+        </div><div class="control-add"></div>
       </div>
     </div>
     <div id="frames-indicator" class="frames-indicator"></div>
