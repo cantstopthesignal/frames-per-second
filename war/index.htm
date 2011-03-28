@@ -299,13 +299,17 @@ DropList.prototype.render = function(containerEl) {
   this.el.className = 'drop-list';
   this.el.onclick = goog.bind(this.handleClick_, this);
 
+  this.buttonEl = document.createElement('div');
+  this.buttonEl.className = 'drop-list-button';
+  this.el.appendChild(this.buttonEl);
+
   this.selectedEl = document.createElement('div');
   this.selectedEl.className = 'drop-list-selected';
-  this.el.appendChild(this.selectedEl);
+  this.buttonEl.appendChild(this.selectedEl);
 
   this.arrowEl = document.createElement('div');
   this.arrowEl.className = 'drop-list-arrow';
-  this.el.appendChild(this.arrowEl);
+  this.buttonEl.appendChild(this.arrowEl);
 
   this.listEl = document.createElement('div');
   this.listEl.className = 'drop-list-list';
@@ -1352,6 +1356,8 @@ STANDARD_MOTION_BLURS = [
 AnimationController = function(el, bottomEl, spriteContainer, animationManager) {
   this.el = el;
   this.controlContainerEl = this.el.getElementsByClassName('control-container')[0];
+  this.addControlButtonEl = this.el.getElementsByClassName(
+      'control-add')[0];
   this.bottomEl = bottomEl;
   this.attributionsLinkEl = this.bottomEl.getElementsByClassName(
       'show-attributions-link')[0];
@@ -1375,6 +1381,16 @@ AnimationController.prototype.addSpriteControl = function(control) {
     control.showAttribution();
   }
   return control;
+};
+
+AnimationController.prototype.removeSpriteControl = function(control) {
+  var spacerEl = control.el.previousSibling;
+  control.dispose();
+  if (spacerEl && goog.dom.classes.has(spacerEl, 'spacer')) {
+    spacerEl.parentNode.removeChild(spacerEl);
+  }
+  this.spriteControls.splice(this.spriteControls.indexOf(control), 1);
+  this.positionSprites();
 };
 
 AnimationController.prototype.clearControls = function() {
@@ -1435,6 +1451,8 @@ AnimationController.prototype.render = function() {
     }
   }
   this.attributionsLinkEl.onclick = goog.bind(this.handleAttributionsLinkClick_, this);
+  this.addControlButtonEl.addEventListener('click',
+      goog.bind(this.handleAddControlButtonClick_, this), false);
 };
 
 AnimationController.prototype.spriteAnimationSetToLargeFps = function(sprite) {
@@ -1460,72 +1478,55 @@ AnimationController.prototype.loadDefaultPreset = function() {
   this.clearControls();
   var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, pair.background))
-      .setVelocity(50)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(true));
+      BACKGROUND_IMAGE_ASSETS, pair.background)).
+      setVelocity(50).
+      setFramesPerSecond(25).
+      setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball)).
+      setVelocity(1000).
+      setFramesPerSecond(60).
+      setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball)).
+      setVelocity(1000).
+      setFramesPerSecond(25).
+      setMotionBlur(new MotionBlurConfig(true));
 };
 
-AnimationController.prototype.load60Vs25Preset = function() {
+AnimationController.prototype.load15Vs25Vs48Vs60Preset = function(opt_exaggerateBlur) {
   this.clearControls();
   var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, pair.background))
-      .setVelocity(50)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(true));
+      BACKGROUND_IMAGE_ASSETS, pair.background)).
+      setVelocity(50).
+      setFramesPerSecond(60).
+      setMotionBlur(new MotionBlurConfig(true));
+  var fpss = [15, 25, 48, 60];
+  var exaggeratedBlurs = [1.0, 1.0, 2.0, 3.0];
+  for (var i = 0; i < fpss.length; i++) {
+    var weight = opt_exaggerateBlur ? exaggeratedBlurs[i] : 1.0;
+    this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball)).
+        setVelocity(1000).
+        setFramesPerSecond(fpss[i]).
+      setMotionBlur(new MotionBlurConfig(true, weight));
+  }
 };
 
-AnimationController.prototype.load25VsMotionBlurPreset = function() {
+AnimationController.prototype.loadMotionBlurOnOffPreset = function(fps) {
   this.clearControls();
   var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, pair.background))
-      .setVelocity(50)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(25)
-      .setMotionBlur(new MotionBlurConfig(false));
-};
-
-AnimationController.prototype.load60VsMotionBlurPreset = function() {
-  this.clearControls();
-  var pair = this.getRandomBackgroundAndSpritePairing();
-  this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, pair.background))
-      .setVelocity(50)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
-      .setVelocity(1000)
-      .setFramesPerSecond(60)
-      .setMotionBlur(new MotionBlurConfig(false));
+      BACKGROUND_IMAGE_ASSETS, pair.background)).
+      setVelocity(50).
+      setFramesPerSecond(fps).
+      setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball)).
+      setVelocity(1000).
+      setFramesPerSecond(fps).
+      setMotionBlur(new MotionBlurConfig(true));
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball)).
+      setVelocity(1000).
+      setFramesPerSecond(fps).
+      setMotionBlur(new MotionBlurConfig(false));
 };
 
 AnimationController.prototype.handleAttributionsLinkClick_ = function() {
@@ -1544,9 +1545,29 @@ AnimationController.prototype.handleAttributionsLinkClick_ = function() {
   }
 };
 
+AnimationController.prototype.handleAddControlButtonClick_ = function() {
+  var protoControl = this.spriteControls[this.spriteControls.length-1];
+  var assetName = BALL_NAMES.SOCCER_BALL;
+  if (protoControl && protoControl instanceof BallSpriteControl) {
+    assetName = protoControl.getAssetName();
+  }
+  if (protoControl) {
+    this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, assetName)).
+        setVelocity(protoControl.getVelocity()).
+        setFramesPerSecond(protoControl.getFramesPerSecond()).
+        setMotionBlur(protoControl.getMotionBlurConfig());
+  } else {
+    this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, assetName)).
+        setVelocity(1000).
+        setFramesPerSecond(60).
+        setMotionBlur(new MotionBlurConfig(true));
+  }
+};
+
 SpriteControl = function(spriteAssets, assetName) {
   this.spriteAssets = spriteAssets;
   this.assetName = assetName;
+  this.allowRemove = true;
   this.sprite = null;
   this.animation = null;
   this.controller = null;
@@ -1577,6 +1598,27 @@ SpriteControl.prototype.getSprite = function() {
   return this.sprite;
 };
 
+SpriteControl.prototype.getAssetName = function() {
+  return this.assetName;
+};
+
+SpriteControl.prototype.getVelocity = function() {
+  return this.velocity;
+};
+
+SpriteControl.prototype.getFramesPerSecond = function() {
+  return this.framesPerSecond;
+};
+
+SpriteControl.prototype.getMotionBlurConfig = function() {
+  return this.motionBlurConfig;
+};
+
+SpriteControl.prototype.setAllowRemove = function(allowRemove) {
+  goog.asserts.assert(!this.el, 'Must be called before render');
+  this.allowRemove = allowRemove;
+};
+
 SpriteControl.prototype.dispose = function() {
   var spriteContainer = this.sprite.getContainer();
   spriteContainer.removeSprite(this.sprite);
@@ -1586,12 +1628,28 @@ SpriteControl.prototype.dispose = function() {
   animationManager.removeAnimation(this.animation);
   this.animation = null;
 
+  if (this.el.parentNode) {
+    this.el.parentNode.removeChild(this.el);
+  }
   this.controller = null;
 };
 
 SpriteControl.prototype.render = function(containerEl) {
   this.el = document.createElement('div');
   this.el.className = 'sprite';
+
+  if (this.allowRemove) {
+    var removeButtonContainer = document.createElement('div');
+    removeButtonContainer.className = 'control-remove-container';
+    this.el.appendChild(removeButtonContainer);
+    this.removeButtonEl = document.createElement('div');
+    this.removeButtonEl.className = 'control-remove';
+    this.removeButtonEl.appendChild(document.createElement('span'));
+    this.removeButtonEl.firstChild.appendChild(document.createTextNode('x'));
+    removeButtonContainer.appendChild(this.removeButtonEl);
+    this.removeButtonEl.addEventListener('click',
+        goog.bind(this.handleRemoveButtonClick_, this));
+  }
 
   var titleCell = document.createElement('div');
   titleCell.className = 'title-cell control-row';
@@ -1693,6 +1751,10 @@ SpriteControl.prototype.getAssetByName = function(assetName) {
   return null;
 };
 
+SpriteControl.prototype.handleRemoveButtonClick_ = function() {
+  this.controller.removeSpriteControl(this);
+};
+
 SpriteControl.prototype.handleAssetChange_ = function(assetName) {
   this.assetName = assetName;
   var position = this.sprite.getPosition();
@@ -1765,6 +1827,7 @@ BallSpriteControl.prototype.createSprite = function() {
 
 BackgroundSpriteControl = function(spriteAssets, assetName) {
   SpriteControl.call(this, spriteAssets, assetName);
+  this.setAllowRemove(false);
 };
 goog.inherits(BackgroundSpriteControl, SpriteControl);
 
@@ -1930,17 +1993,21 @@ body {
   padding: 0px;
 }
 .drop-list {
-  border: 1px solid transparent;
   cursor: default;
   -webkit-user-select: none;
   display: inline-block;
 }
-.drop-list:hover,
-.drop-list.drop-list-open {
+.drop-list-button {
+  border: 1px solid transparent;
+  position: relative;
+}
+.drop-list-button:hover,
+.drop-list-open .drop-list-button {
   background-color: white;
   border-color: #99f;
   border-top-color: #ccf;
   border-left-color: #ccf;
+  z-index: 2;
 }
 .drop-list-arrow {
   width: 12px;
@@ -1976,6 +2043,48 @@ body {
 .control-bar .control-container {
   display: inline-block;
   vertical-align: top;
+}
+.control-bar .control-add,
+.control-bar .control-remove {
+  background-color: white;
+  color: #babad2;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+  text-align: center;
+  overflow: hidden;
+  border: 1px solid #babad2;
+  border-radius: 8px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+.control-bar .control-add:hover,
+.control-bar .control-remove:hover {
+  background-color: #babad2;
+  color: white;
+}
+.control-bar .control-add span,
+.control-bar .control-remove span {
+  font-family: verdana, arial, sans-serif;
+  font-size: 16px;
+  position: relative;
+  top: -3px;
+}
+.control-bar .control-add {
+  margin-left: 15px;
+}
+.control-bar .control-remove-container {
+  float: right;
+  height: 0px;
+  position: relative;
+  top: -9px;
+  right: -9px;
+}
+.control-bar .control-remove {
+  visibility: hidden;
+}
+.control-bar .sprite:hover .control-remove {
+  visibility: visible;
 }
 .control-bar .control-row {
   border-bottom: 1px solid #ccc;
@@ -2194,6 +2303,7 @@ body {
         </div>
       </div>
       <div class="control-container"></div>
+      <div class="control-add"><span>+</span></div>
     </div>
     <div id="frames-indicator" class="frames-indicator"></div>
     <div class="animation-box">
@@ -2215,15 +2325,15 @@ body {
       <p>A few presets to try out:
       <ul>
         <li>
-          <a href="javascript:animationController.load60Vs25Preset();">
-            60 frames per second vs. 25 frames per second
-          </a>
+          <a href="javascript:animationController.load15Vs25Vs48Vs60Preset();">15 vs. 25 vs. 48 vs. 60 frames per second</a>
+          &nbsp;
+          (<a href="javascript:animationController.load15Vs25Vs48Vs60Preset(true);">with motion blur exaggeration</a>)
         <li>
-          <a href="javascript:animationController.load25VsMotionBlurPreset();">
+          <a href="javascript:animationController.loadMotionBlurOnOffPreset(25);">
             25 frames per second with and without motion blur
           </a>
         <li>
-          <a href="javascript:animationController.load60VsMotionBlurPreset();">
+          <a href="javascript:animationController.loadMotionBlurOnOffPreset(60);">
             60 frames per second with and without motion blur
           </a>
       </ul>
