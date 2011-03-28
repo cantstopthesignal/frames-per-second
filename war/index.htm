@@ -1651,7 +1651,7 @@ SpriteControl.prototype.render = function() {
     this.removeButtonEl.firstChild.appendChild(document.createTextNode('x'));
     removeButtonContainer.appendChild(this.removeButtonEl);
     this.removeButtonEl.addEventListener('click',
-        goog.bind(this.handleRemoveButtonClick_, this));
+        goog.bind(this.handleRemoveButtonClick_, this), false);
   }
 
   var titleCell = document.createElement('div');
