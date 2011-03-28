@@ -1650,8 +1650,6 @@ SpriteControl.prototype.render = function() {
     this.el.appendChild(removeButtonContainer);
     this.removeButtonEl = document.createElement('div');
     this.removeButtonEl.className = 'control-remove';
-    this.removeButtonEl.appendChild(document.createElement('span'));
-    this.removeButtonEl.firstChild.appendChild(document.createTextNode('x'));
     removeButtonContainer.appendChild(this.removeButtonEl);
     this.removeButtonEl.addEventListener('click',
         goog.bind(this.handleRemoveButtonClick_, this), false);
@@ -2053,29 +2051,24 @@ body {
 }
 .control-bar .control-add,
 .control-bar .control-remove {
-  background-color: white;
-  color: #babad2;
+  background: url(images/add-remove-controls-sprite.png);
   display: inline-block;
-  height: 16px;
-  width: 16px;
-  text-align: center;
-  overflow: hidden;
-  border: 1px solid #babad2;
-  border-radius: 8px;
+  height: 18px;
+  width: 18px;
   margin-left: 10px;
   cursor: pointer;
 }
-.control-bar .control-add:hover,
-.control-bar .control-remove:hover {
-  background-color: #babad2;
-  color: white;
+.control-bar .control-add {
+  background-position-x: -54px;
 }
-.control-bar .control-add span,
-.control-bar .control-remove span {
-  font-family: verdana, arial, sans-serif;
-  font-size: 16px;
-  position: relative;
-  top: -3px;
+.control-bar .control-add:hover {
+  background-position-x: -36px;
+}
+.control-bar .control-remove {
+  background-position-x: -18px;
+}
+.control-bar .control-remove:hover {
+  background-position-x: 0px;
 }
 .control-bar .control-add {
   margin-left: 15px;
@@ -2313,7 +2306,8 @@ body {
           <div class="velocity-cell control-row">
             <span>Velocity</span>
           </div>
-        </div><div class="control-add"><span>+</span></div>
+        </div>
+        <div class="control-add"></div>
       </div>
     </div>
     <div id="frames-indicator" class="frames-indicator"></div>
