@@ -1649,6 +1649,7 @@ AnimationController.prototype.addSpacerBefore = function(beforeEl) {
 };
 
 AnimationController.prototype.render = function() {
+  this.el.style.visibility = 'visible';
   var nodes = this.el.childNodes;
   for (var i = 0; i < nodes.length; i++) {
     if (nodes[i].nodeType != Node.ELEMENT_NODE) {
@@ -2172,7 +2173,7 @@ LargeFpsWarning.prototype.handleIgnoreClick = function() {
 BrowserVersionWarning = function() {
   this.el = document.createElement('div');
   this.el.style.display = 'none';
-  goog.dom.classes.add(this.el, 'dialog');
+  this.el.className = 'dialog';
   document.body.appendChild(this.el);
 
   this.messageEl = document.createElement('div');
@@ -2215,27 +2216,22 @@ BrowserVersionWarning.prototype.updateDisplay = function() {
   var message = 'Your browser may not be supported by this tool.  Tested ' +
       'browsers include Chrome, Firefox 3.6+, Internet Explorer 9, ' +
       'Safari 5, and Opera 11.';
+  this.messageEl.innerHTML = message;
 
   this.buttonContainerEl.innerHTML = '';
 
   var ignoreButton = document.createElement('button');
   ignoreButton.innerHTML = '<span>Ignore this warning</span>';
-  ignoreButton.addEventListener('click',
-      goog.bind(this.handleIgnoreClick, this), false);
+  var self = this;
+  ignoreButton.onclick = function() { self.hide(); };
   this.buttonContainerEl.appendChild(ignoreButton);
-
-  this.messageEl.innerHTML = message;
 
   this.el.style.marginLeft = -(this.el.offsetWidth/2) + 'px';
   this.el.style.marginTop = -(this.el.offsetHeight/2) + 'px';
 };
 
-BrowserVersionWarning.prototype.handleIgnoreClick = function() {
-  this.hide();
-};
-
-window.addEventListener('load', function() {
-  var browserVersionWarning = new BrowserVersionWarning();
+window.onload = function() {
+ var browserVersionWarning = new BrowserVersionWarning();
   browserVersionWarning.check();
 
   var spriteContainer = new SpriteContainer(
@@ -2256,7 +2252,7 @@ window.addEventListener('load', function() {
   animationManager.addAnimation(framesIndicator);
 
   animationManager.start();
-}, false);
+};
     </script>
     <style type="text/css">
 body {
@@ -2533,6 +2529,7 @@ body {
 .dialog button span {
   display: block;
   padding: 1px;
+  cursor: default;
 }
 .spinner {
   background-color: black;
@@ -2582,7 +2579,7 @@ body {
   </script>
   </head>
   <body>
-    <div id="control-bar" class="control-bar">
+    <div id="control-bar" class="control-bar" style="visibility: hidden">
       <div class="control-container">
         <div class="desc">
           <div class="title-cell control-row">
@@ -2605,7 +2602,7 @@ body {
     </div>
     <div id="frames-indicator" class="frames-indicator"></div>
     <div class="animation-box">
-      <div id="animation-frame" class="animation-frame">
+      <div class="animation-frame">
         <div id="animation-container" class="animation-container">
         </div>
       </div>
