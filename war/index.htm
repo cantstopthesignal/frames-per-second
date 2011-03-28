@@ -1101,7 +1101,6 @@ Sprite.prototype.setMotionBlur = function(motionBlurSpec) {
 ImageSprite = function(imgSrc, opt_width, opt_height) {
   Sprite.call(this);
   this.img = new Image();
-  this.img.src = imgSrc;
   this.img.addEventListener('load', goog.bind(this.handleLoad, this), false);
   this.imgLoadSpin = Spinner.getInstance().spin(100, 'Loading image...');
   this.imgWidth = opt_width;
@@ -1116,6 +1115,9 @@ ImageSprite = function(imgSrc, opt_width, opt_height) {
   this.canvasHeight = null;
   this.imgCanvas = document.createElement('canvas');
   this.imgCtx = this.imgCanvas.getContext('2d');
+
+  // Image load may trigger immediately if the image is cached.
+  this.img.src = imgSrc;
 };
 goog.inherits(ImageSprite, Sprite);
 
@@ -1131,11 +1133,19 @@ ImageSprite.prototype.getElement = function() {
 };
 
 ImageSprite.prototype.handleLoad = function() {
-  this.imgLoadSpin.release();
-  this.imgLoadSpin = null;
   this.imgWidth = this.imgWidth || this.img.width;
   this.imgHeight = this.imgHeight || this.img.height;
-  this.drawImgCanvas();
+
+  if (!this.drawImgCanvas()) {
+    // There appears to be a bug in IE9's canvas and image handling.  It is possible
+    // for an image to have been loaded but when drawn to a canvas to produce no
+    // content.  In this case, simply stall using setTimeout and try again.
+    window.setTimeout(goog.bind(this.handleLoad, this), 1);
+    return;
+  }
+
+  this.imgLoadSpin.release();
+  this.imgLoadSpin = null;
   this.draw(true);
   if (!this.loaded) {
     this.loaded = true;
@@ -1147,11 +1157,26 @@ ImageSprite.prototype.getSize = function() {
   return new Size(this.imgWidth, this.imgHeight);
 };
 
+/**
+ * Draw the image to this.imgCanvas, and return whether the image had content.
+ */
 ImageSprite.prototype.drawImgCanvas = function() {
   this.imgCanvas.width = this.imgWidth;
   this.imgCanvas.height = this.imgHeight;
   this.imgCtx.clearRect(0, 0, this.imgWidth, this.imgHeight);
   this.imgCtx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+
+  // Check whether the drawn image produced content.
+  var imgData = this.imgCtx.getImageData(0, 0, this.imgWidth, this.imgHeight);
+  var imgPixels = imgData.data;
+
+  var imgPixelsLength = imgPixels.length;
+  for (var i = 0; i < imgPixelsLength; i++) {
+    if (imgPixels[i] != 0) {
+      return true;
+    }
+  }
+  return false;
 };
 
 ImageSprite.prototype.draw = function(initialDraw) {
