@@ -128,6 +128,177 @@ goog.dom.classes.toggle = function(element, className) {
   return add;
 };
 
+goog.string = {};
+
+goog.string.contains = function(s, ss) {
+  return s.indexOf(ss) != -1;
+};
+
+goog.string.trim = function(str) {
+  return str.replace(/^[\s\xa0]+|[\s\xa0]+$/g, '');
+};
+
+goog.string.compareVersions = function(version1, version2) {
+  var order = 0;
+  // Trim leading and trailing whitespace and split the versions into
+  // subversions.
+  var v1Subs = goog.string.trim(String(version1)).split('.');
+  var v2Subs = goog.string.trim(String(version2)).split('.');
+  var subCount = Math.max(v1Subs.length, v2Subs.length);
+
+  // Iterate over the subversions, as long as they appear to be equivalent.
+  for (var subIdx = 0; order == 0 && subIdx < subCount; subIdx++) {
+    var v1Sub = v1Subs[subIdx] || '';
+    var v2Sub = v2Subs[subIdx] || '';
+
+    var v1CompParser = new RegExp('(\\d*)(\\D*)', 'g');
+    var v2CompParser = new RegExp('(\\d*)(\\D*)', 'g');
+    do {
+      var v1Comp = v1CompParser.exec(v1Sub) || ['', '', ''];
+      var v2Comp = v2CompParser.exec(v2Sub) || ['', '', ''];
+      // Break if there are no more matches.
+      if (v1Comp[0].length == 0 && v2Comp[0].length == 0) {
+        break;
+      }
+
+      // Parse the numeric part of the subversion. A missing number is
+      // equivalent to 0.
+      var v1CompNum = v1Comp[1].length == 0 ? 0 : parseInt(v1Comp[1], 10);
+      var v2CompNum = v2Comp[1].length == 0 ? 0 : parseInt(v2Comp[1], 10);
+
+      order = goog.string.compareElements_(v1CompNum, v2CompNum) ||
+          goog.string.compareElements_(v1Comp[2].length == 0,
+              v2Comp[2].length == 0) ||
+          goog.string.compareElements_(v1Comp[2], v2Comp[2]);
+    } while (order == 0);
+  }
+
+  return order;
+};
+
+goog.string.compareElements_ = function(left, right) {
+  if (left < right) {
+    return -1;
+  } else if (left > right) {
+    return 1;
+  }
+  return 0;
+};
+
+goog.userAgent = {};
+
+goog.userAgent.getUserAgentString = function() {
+  return goog.global['navigator'] ? goog.global['navigator'].userAgent : null;
+};
+
+goog.userAgent.getNavigator = function() {
+  return goog.global['navigator'];
+};
+
+goog.userAgent.init_ = function() {
+  goog.userAgent.detectedOpera_ = false;
+  goog.userAgent.detectedIe_ = false;
+  goog.userAgent.detectedWebkit_ = false;
+  goog.userAgent.detectedMobile_ = false;
+  goog.userAgent.detectedGecko_ = false;
+
+  var ua;
+  if (ua = goog.userAgent.getUserAgentString()) {
+    var navigator = goog.userAgent.getNavigator();
+    goog.userAgent.detectedOpera_ = ua.indexOf('Opera') == 0;
+    goog.userAgent.detectedIe_ = !goog.userAgent.detectedOpera_ &&
+        ua.indexOf('MSIE') != -1;
+    goog.userAgent.detectedWebkit_ = !goog.userAgent.detectedOpera_ &&
+        ua.indexOf('WebKit') != -1;
+    goog.userAgent.detectedMobile_ = goog.userAgent.detectedWebkit_ &&
+        ua.indexOf('Mobile') != -1;
+    goog.userAgent.detectedGecko_ = !goog.userAgent.detectedOpera_ &&
+        !goog.userAgent.detectedWebkit_ && navigator.product == 'Gecko';
+  }
+};
+
+goog.userAgent.init_();
+
+goog.userAgent.OPERA = goog.userAgent.detectedOpera_;
+goog.userAgent.IE = goog.userAgent.detectedIe_;
+goog.userAgent.GECKO = goog.userAgent.detectedGecko_;
+goog.userAgent.WEBKIT = goog.userAgent.detectedWebkit_;
+goog.userAgent.MOBILE = goog.userAgent.detectedMobile_;
+
+goog.userAgent.determinePlatform_ = function() {
+  var navigator = goog.userAgent.getNavigator();
+  return navigator && navigator.platform || '';
+};
+
+goog.userAgent.PLATFORM = goog.userAgent.determinePlatform_();
+
+goog.userAgent.initPlatform_ = function() {
+  goog.userAgent.detectedMac_ = goog.string.contains(goog.userAgent.PLATFORM,
+      'Mac');
+  goog.userAgent.detectedWindows_ = goog.string.contains(
+      goog.userAgent.PLATFORM, 'Win');
+  goog.userAgent.detectedLinux_ = goog.string.contains(goog.userAgent.PLATFORM,
+      'Linux');
+  goog.userAgent.detectedX11_ = !!goog.userAgent.getNavigator() &&
+      goog.string.contains(goog.userAgent.getNavigator()['appVersion'] || '',
+          'X11');
+};
+
+goog.userAgent.initPlatform_();
+
+goog.userAgent.MAC = goog.userAgent.detectedMac_;
+goog.userAgent.WINDOWS = goog.userAgent.detectedWindows_;
+goog.userAgent.LINUX = goog.userAgent.detectedLinux_;
+goog.userAgent.X11 = goog.userAgent.detectedX11_;
+
+goog.userAgent.determineVersion_ = function() {
+ var version = '', re;
+
+  if (goog.userAgent.OPERA && goog.global['opera']) {
+    var operaVersion = goog.global['opera'].version;
+    version = typeof operaVersion == 'function' ? operaVersion() : operaVersion;
+  } else {
+    if (goog.userAgent.GECKO) {
+      re = /rv\:([^\);]+)(\)|;)/;
+    } else if (goog.userAgent.IE) {
+      re = /MSIE\s+([^\);]+)(\)|;)/;
+    } else if (goog.userAgent.WEBKIT) {
+      // WebKit/125.4
+      re = /WebKit\/(\S+)/;
+    }
+    if (re) {
+      var arr = re.exec(goog.userAgent.getUserAgentString());
+      version = arr ? arr[1] : '';
+    }
+  }
+  if (goog.userAgent.IE) {
+   var docMode = goog.userAgent.getDocumentMode_();
+    if (docMode > parseFloat(version)) {
+      return String(docMode);
+    }
+  }
+  return version;
+};
+
+goog.userAgent.getDocumentMode_ = function() {
+  var doc = goog.global['document'];
+  return doc ? doc['documentMode'] : undefined;
+};
+
+goog.userAgent.VERSION = goog.userAgent.determineVersion_();
+
+goog.userAgent.isVersionCache_ = {};
+
+/**
+ * @return {boolean} Whether the user agent version is higher or the same as
+ *     the given version.
+ */
+goog.userAgent.isVersion = function(version) {
+  return goog.userAgent.isVersionCache_[version] ||
+      (goog.userAgent.isVersionCache_[version] =
+          goog.string.compareVersions(goog.userAgent.VERSION, version) >= 0);
+};
+
 Util = {};
 
 Util.hzToMs = function(hz) {
@@ -1875,7 +2046,7 @@ LargeFpsWarning = function() {
 
   this.el = document.createElement('div');
   this.el.style.display = 'none';
-  goog.dom.classes.add(this.el, 'large-fps-warning');
+  goog.dom.classes.add(this.el, 'dialog');
   document.body.appendChild(this.el);
 
   this.messageEl = document.createElement('div');
@@ -1998,7 +2169,71 @@ LargeFpsWarning.prototype.handleIgnoreClick = function() {
   this.hide();
 };
 
+BrowserVersionWarning = function() {
+  this.el = document.createElement('div');
+  this.el.style.display = 'none';
+  goog.dom.classes.add(this.el, 'dialog');
+  document.body.appendChild(this.el);
+
+  this.messageEl = document.createElement('div');
+  this.el.appendChild(this.messageEl);
+
+  this.buttonContainerEl = document.createElement('div');
+  this.el.appendChild(this.buttonContainerEl);
+};
+
+BrowserVersionWarning.prototype.check = function() {
+  var supported = false;
+  if (goog.userAgent.WEBKIT &&
+      goog.string.compareVersions(goog.userAgent.VERSION, '533') >= 0) {
+    supported = true;
+  } else if (goog.userAgent.GECKO &&
+      goog.string.compareVersions(goog.userAgent.VERSION, '1.9.2') >= 0) {
+    supported = true;
+  } else if (goog.userAgent.IE &&
+      goog.string.compareVersions(goog.userAgent.VERSION, '9') >= 0) {
+    supported = true;
+  }
+  if (!supported) {
+    this.show();
+  }
+};
+
+BrowserVersionWarning.prototype.show = function() {
+  this.el.style.display = '';
+  this.updateDisplay();
+};
+
+BrowserVersionWarning.prototype.hide = function() {
+  this.el.style.display = 'none';
+};
+
+BrowserVersionWarning.prototype.updateDisplay = function() {
+  var message = 'Your browser may not be supported by this tool.  Tested ' +
+      'browsers include Safari 5, Chrome, Firefox 3.6+ and IE9.';
+
+  this.buttonContainerEl.innerHTML = '';
+
+  var ignoreButton = document.createElement('button');
+  ignoreButton.innerHTML = '<span>Ignore this warning</span>';
+  ignoreButton.addEventListener('click',
+      goog.bind(this.handleIgnoreClick, this), false);
+  this.buttonContainerEl.appendChild(ignoreButton);
+
+  this.messageEl.innerHTML = message;
+
+  this.el.style.marginLeft = -(this.el.offsetWidth/2) + 'px';
+  this.el.style.marginTop = -(this.el.offsetHeight/2) + 'px';
+};
+
+BrowserVersionWarning.prototype.handleIgnoreClick = function() {
+  this.hide();
+};
+
 window.addEventListener('load', function() {
+  var browserVersionWarning = new BrowserVersionWarning();
+  browserVersionWarning.check();
+
   var spriteContainer = new SpriteContainer(
       document.getElementById('animation-container'),
       VideoSizes.DVD);
@@ -2058,8 +2293,9 @@ body {
   outline: none;
   background-color: white;
   box-shadow: 0px 5px 15px #000;
-  -webkit-box-shadow: 0px 5px 15px #000;
-  z-index: 1000;
+  -moz-box-shadow: 0px 5px 15px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 15px #000;  /* Safari le 5 */
+  z-index: 3;
 }
 .drop-list-list .drop-list-option:hover{
   background-color: #ccf;
@@ -2159,6 +2395,7 @@ body {
   border: 2px outset;
   border-color: #ddf;
   border-radius: 10px;
+  -moz-border-radius: 10px;  /* FF lt 4 */
   min-width: 125px;
   margin-bottom: 10px;
 }
@@ -2206,6 +2443,7 @@ body {
 .frames-indicator-ball {
   display: inline-block;
   border-radius: 10px;
+  -moz-border-radius: 10px;  /* FF lt 4 */
   width: 20px;
   height: 20px;  
   background-color: green;
@@ -2231,9 +2469,10 @@ body {
   margin-right: 5px;
   vertical-align: top;
   background-color: #fff;
-  z-index: 2;
+  z-index: 4;
   box-shadow: 0px 5px 10px #fff;
-  -webkit-box-shadow: 0px 5px 10px #fff;
+  -moz-box-shadow: 0px 5px 10px #fff;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #fff;  /* Safari le 5 */
 }
 .frames-indicator td {
   text-align: right;
@@ -2254,7 +2493,7 @@ body {
 .animation-frame {
   border: 5px solid black;
   display: inline-block;
-  background-color: black;
+  background-color: #333;
 }
 .animation-container {
   display: inline-block;
@@ -2264,7 +2503,7 @@ body {
 .more-information {
   padding: 0px 10px;
 }
-.large-fps-warning {
+.dialog {
   background-color: black;
   color: white;
   width: 300px;
@@ -2274,17 +2513,20 @@ body {
   padding: 10px 10px;
   border: 1px solid black;
   border-radius: 15px;
+  -moz-border-radius: 15px;  /* FF lt 4 */
   box-shadow: 0px 5px 10px #000;
-  -webkit-box-shadow: 0px 5px 10px #000;
+  -moz-box-shadow: 0px 5px 10px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #000;  /* Safari le 5 */
   overflow: hidden;
+  z-index: 20;
 }
-.large-fps-warning button {
+.dialog button {
   margin-top: 5px;
   font-size: 16px;
   text-align: center;
   width: 100%;
 }
-.large-fps-warning button span {
+.dialog button span {
   display: block;
   padding: 1px;
 }
@@ -2297,9 +2539,12 @@ body {
   padding: 10px 20px;
   border: 1px solid black;
   border-radius: 15px;
+  -moz-border-radius: 15px;  /* FF lt 4 */
   box-shadow: 0px 5px 10px #000;
-  -webkit-box-shadow: 0px 5px 10px #000;
+  -moz-box-shadow: 0px 5px 10px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #000;  /* Safari le 5 */
   overflow: hidden;
+  z-index: 10;
 }
 .spinner-img {
   width: 48px;
