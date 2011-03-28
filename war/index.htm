@@ -1776,8 +1776,8 @@ LargeFpsWarning.prototype.handleRefreshRateTesterState = function() {
 LargeFpsWarning.prototype.updateDisplay = function() {
   var message = 'You have chosen an animation rate that is larger than 60 ' +
       'frames per second. Many computer monitors are limited to a refresh ' +
-      'rate of 60 Hz. Animations that are faster than the native refresh rate ' +
-      'will not appear better than running at the same rate as the refresh rate.';
+      'rate of 60 Hz. Animations faster than the native refresh rate ' +
+      'will not appear smoother.';
 
   this.buttonContainerEl.innerHTML = "";
 
