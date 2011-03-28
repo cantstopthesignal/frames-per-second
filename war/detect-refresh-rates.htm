@@ -28,7 +28,7 @@ DetectRefreshRates.prototype.getJavaMissing = function() {
 DetectRefreshRates.prototype.getRefreshRates = function() {
   var applet = this.getApplet();
   if (applet && 'getRefreshRates' in applet) {
-    return applet.getRefreshRates().split(",");
+    return applet.getRefreshRates().split(',');
   }
 };
 

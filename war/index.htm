@@ -51,7 +51,7 @@ goog.asserts = {};
 
 goog.asserts.assert = function(condition, opt_message) {
   if (!condition) {
-    throw new Error(opt_message || "Assert failed");
+    throw new Error(opt_message || 'Assert failed');
   }
 };
 
@@ -241,7 +241,7 @@ MotionBlurConfig = function(enabled, opt_weight) {
 };
 
 MotionBlurConfig.fromString = function(str) {
-  if (str == "None") {
+  if (str == 'None') {
     return new MotionBlurConfig(false);
   } else {
     return new MotionBlurConfig(true, str + 0.0);
@@ -260,26 +260,26 @@ MotionBlurConfig.prototype.toString = function() {
   if (this.enabled) {
     return this.weight;
   } else {
-    return "None";
+    return 'None';
   }
 };
 
 MotionBlurConfig.prototype.toFriendlyString = function() {
   if (this.enabled) {
     if (this.weight == 1.0) {
-      return "1.0 (Realistic)";
+      return '1.0 (Realistic)';
     }
-    var weightString = "" + this.weight;
-    if (weightString.indexOf(".") < 0) {
-      weightString += ".0";
+    var weightString = '' + this.weight;
+    if (weightString.indexOf('.') < 0) {
+      weightString += '.0';
     }
     if (this.weight > 1.0) {
-      return weightString + " (Heavy)";
+      return weightString + ' (Heavy)';
     } else {
-      return weightString + " (Light)";
+      return weightString + ' (Light)';
     }
   } else {
-    return "None";
+    return 'None';
   }
 };
 
@@ -292,24 +292,24 @@ DropList = function() {
   this.onchange = new EventHost();
 };
 
-DropList.NAME_FIELD = "DLO-name";
+DropList.NAME_FIELD = 'DLO-name';
 
 DropList.prototype.render = function(containerEl) {
-  this.el = document.createElement("div");
-  this.el.className = "drop-list";
+  this.el = document.createElement('div');
+  this.el.className = 'drop-list';
   this.el.onclick = goog.bind(this.handleClick_, this);
 
-  this.selectedEl = document.createElement("div");
-  this.selectedEl.className = "drop-list-selected";
+  this.selectedEl = document.createElement('div');
+  this.selectedEl.className = 'drop-list-selected';
   this.el.appendChild(this.selectedEl);
 
-  this.arrowEl = document.createElement("div");
-  this.arrowEl.className = "drop-list-arrow";
+  this.arrowEl = document.createElement('div');
+  this.arrowEl.className = 'drop-list-arrow';
   this.el.appendChild(this.arrowEl);
 
-  this.listEl = document.createElement("div");
-  this.listEl.className = "drop-list-list";
-  this.listEl.style.display = "none";
+  this.listEl = document.createElement('div');
+  this.listEl.className = 'drop-list-list';
+  this.listEl.style.display = 'none';
   this.listEl.tabIndex = -1;
   this.listEl.onblur = goog.bind(this.setOpen, this, false);
   this.el.appendChild(this.listEl);
@@ -318,8 +318,8 @@ DropList.prototype.render = function(containerEl) {
 };
 
 DropList.prototype.createOption = function(optionName) {
-  var optionEl = document.createElement("div");
-  optionEl.className = "drop-list-option";
+  var optionEl = document.createElement('div');
+  optionEl.className = 'drop-list-option';
   optionEl[DropList.NAME_FIELD] = optionName;
   optionEl.onclick = goog.bind(this.handleClickOption_, this, optionName);
 
@@ -346,7 +346,7 @@ DropList.prototype.getSelected = function() {
 DropList.prototype.setSelected = function(optionName) {
   var selectedOption = this.findOptionByName(optionName);
   goog.asserts.assert(selectedOption);
-  this.selectedEl.innerHTML = "";
+  this.selectedEl.innerHTML = '';
   this.selectedEl.appendChild(selectedOption.cloneNode(true));
   this.onchange.fire(optionName);
 };
@@ -366,10 +366,10 @@ DropList.prototype.setOpen = function(open) {
   if (open != this.open) {
     this.open = open;
     if (this.open) {
-      this.listEl.style.minWidth = this.el.offsetWidth + "px";
+      this.listEl.style.minWidth = this.el.offsetWidth + 'px';
     }
-    goog.dom.classes.enable(this.el, "drop-list-open", this.open);
-    this.listEl.style.display = this.open ? "" : "none";
+    goog.dom.classes.enable(this.el, 'drop-list-open', this.open);
+    this.listEl.style.display = this.open ? '' : 'none';
     if (this.open) {
       this.listEl.focus();
     }
@@ -377,17 +377,17 @@ DropList.prototype.setOpen = function(open) {
 };
 
 Spinner = function() {
-  this.el = document.createElement("div");
-  goog.dom.classes.add(this.el, "spinner");
+  this.el = document.createElement('div');
+  goog.dom.classes.add(this.el, 'spinner');
   document.body.appendChild(this.el);
 
-  var imgEl = document.createElement("img");
-  imgEl.src = "images/spinner-black.gif";
-  goog.dom.classes.add(imgEl, "spinner-img");
+  var imgEl = document.createElement('img');
+  imgEl.src = 'images/spinner-black.gif';
+  goog.dom.classes.add(imgEl, 'spinner-img');
   this.el.appendChild(imgEl);
   
-  this.messageEl = document.createElement("div");
-  goog.dom.classes.add(this.messageEl, "spinner-message");
+  this.messageEl = document.createElement('div');
+  goog.dom.classes.add(this.messageEl, 'spinner-message');
   this.el.appendChild(this.messageEl);
 
   this.spinDisplayed = false;
@@ -446,20 +446,20 @@ Spinner.prototype.handleTimeout = function() {
 };
 
 Spinner.prototype.updateDisplay = function() {
-  this.el.style.display = this.spinDisplayed ? "" : "none";
+  this.el.style.display = this.spinDisplayed ? '' : 'none';
 
   var message;
   for (var i = 0; i < this.spinEntries.length; i++) {
     message = this.spinEntries[i].message || message;
   }
 
-  this.messageEl.style.display = message ? "" : "none";
+  this.messageEl.style.display = message ? '' : 'none';
   if (message) {
-    this.messageEl.innerHTML = "";
+    this.messageEl.innerHTML = '';
     this.messageEl.appendChild(document.createTextNode(message));
   }
-  this.el.style.marginLeft = -(this.el.offsetWidth/2) + "px";
-  this.el.style.marginTop = -(this.el.offsetHeight/2) + "px";
+  this.el.style.marginLeft = -(this.el.offsetWidth/2) + 'px';
+  this.el.style.marginTop = -(this.el.offsetHeight/2) + 'px';
 };
 
 AnimationManager = function() {
@@ -619,24 +619,24 @@ FramesIndicator = function(el) {
   this.el.onmouseover = goog.bind(this.setFullDisplay, this, true);
   this.el.onmouseout = goog.bind(this.setFullDisplay, this, false);
 
-  this.tableEl = document.createElement("table");
+  this.tableEl = document.createElement('table');
   this.el.appendChild(this.tableEl);
 
-  this.arrowEl = document.createElement("div");
-  goog.dom.classes.add(this.arrowEl, "frames-indicator-arrow");
+  this.arrowEl = document.createElement('div');
+  goog.dom.classes.add(this.arrowEl, 'frames-indicator-arrow');
   this.el.appendChild(this.arrowEl);
 
-  this.ballEl = document.createElement("div");
-  goog.dom.classes.add(this.ballEl, "frames-indicator-ball", "error");
+  this.ballEl = document.createElement('div');
+  goog.dom.classes.add(this.ballEl, 'frames-indicator-ball', 'error');
   this.el.appendChild(this.ballEl);
 
   this.fullDisplay;
   this.setFullDisplay(false);
 
   var row = this.addRow();
-  this.addCell(row, "Animation");
-  this.addCell(row, "Frames per second");
-  this.addCell(row, "Timing error (stddev)");
+  this.addCell(row, 'Animation');
+  this.addCell(row, 'Frames per second');
+  this.addCell(row, 'Timing error (stddev)');
 };
 goog.inherits(FramesIndicator, Animation);
 
@@ -647,18 +647,18 @@ FramesIndicator.prototype.step = function(elapsedMs) {
 
 FramesIndicator.prototype.setFullDisplay = function(fullDisplay) {
   this.fullDisplay = fullDisplay;
-  this.tableEl.style.display = this.fullDisplay ? "" : "none";
-  this.arrowEl.style.display = this.fullDisplay ? "none" : "";
+  this.tableEl.style.display = this.fullDisplay ? '' : 'none';
+  this.arrowEl.style.display = this.fullDisplay ? 'none' : '';
 }
 
 FramesIndicator.prototype.addRow = function() {
-  var row = document.createElement("tr");
+  var row = document.createElement('tr');
   this.tableEl.appendChild(row);
   return row;
 };
 
 FramesIndicator.prototype.addCell = function(row, text) {
-  var cell = document.createElement("td");
+  var cell = document.createElement('td');
   row.appendChild(cell);
   cell.appendChild(document.createTextNode(text));
   return cell;
@@ -689,36 +689,36 @@ FramesIndicator.prototype.renderDisplay = function() {
     var fpsErrorPercent = (Math.abs(fps - fpsDesired) / fpsDesired) * 100;
     var timingStddev = Math.sqrt(frameMonitor.getFrameVariance());
 
-    var fpsCell = this.addCell(row, Math.round(fps) + " / " + fpsDesired);
+    var fpsCell = this.addCell(row, Math.round(fps) + ' / ' + fpsDesired);
     if (fpsErrorPercent > 20) {
       hasErrors = true;
-      goog.dom.classes.add(fpsCell, "error");
+      goog.dom.classes.add(fpsCell, 'error');
     } else if (fpsErrorPercent > 5) {
       hasWarnings = true;
-      goog.dom.classes.add(fpsCell, "warning");
+      goog.dom.classes.add(fpsCell, 'warning');
     }
 
-    var timingError = "" + (Math.round(timingStddev * 100) / 100);
-    if (timingError.indexOf(".") < 0) {
-      timingError += ".00";
+    var timingError = '' + (Math.round(timingStddev * 100) / 100);
+    if (timingError.indexOf('.') < 0) {
+      timingError += '.00';
     } else if (timingError[timingError.length-3] != '.') {
-      timingError += "0";
+      timingError += '0';
     }
-    var timingErrorCell = this.addCell(row, timingError + "ms");
+    var timingErrorCell = this.addCell(row, timingError + 'ms');
     if (timingStddev > 8) {
       hasErrors = true;
-      goog.dom.classes.add(timingErrorCell, "error");
+      goog.dom.classes.add(timingErrorCell, 'error');
     } else if (timingStddev > 3) {
       hasWarnings = true;
-      goog.dom.classes.add(timingErrorCell, "warning");
+      goog.dom.classes.add(timingErrorCell, 'warning');
     }
   }
 
-  goog.dom.classes.remove(this.ballEl, "warning", "error");
+  goog.dom.classes.remove(this.ballEl, 'warning', 'error');
   if (hasErrors) {
-    goog.dom.classes.add(this.ballEl, "error");
+    goog.dom.classes.add(this.ballEl, 'error');
   } else if (hasWarnings) {
-    goog.dom.classes.add(this.ballEl, "warning");
+    goog.dom.classes.add(this.ballEl, 'warning');
   }
 };
 
@@ -870,7 +870,7 @@ DetectRefreshRates.getInstance = function() {
   return DetectRefreshRates.instance;
 };
 
-DetectRefreshRates.JAVA_VERSION_MATCHER = "1.5+";
+DetectRefreshRates.JAVA_VERSION_MATCHER = '1.5+';
 
 DetectRefreshRates.State = {
   NONE: 'NONE',
@@ -907,16 +907,16 @@ DetectRefreshRates.prototype.startLookup = function() {
 
   this.stateChange(DetectRefreshRates.State.LOADING_JAVA);
 
-  this.iframe = this.document.createElement("iframe");
-  this.iframe.style.visibility = "hidden";
-  this.iframe.style.width = "0px";
-  this.iframe.style.height = "0px";
-  this.iframe.style.position = "absolute";
-  this.iframe.style.left = "0px";
-  this.iframe.style.top = "0px";
-  this.iframe.setAttribute("src", "detect-refresh-rates.htm");
-  this.iframe.addEventListener("load", goog.bind(onSuccess, this), false);
-  this.iframe.addEventListener("error", goog.bind(onFailure, this), false);
+  this.iframe = this.document.createElement('iframe');
+  this.iframe.style.visibility = 'hidden';
+  this.iframe.style.width = '0px';
+  this.iframe.style.height = '0px';
+  this.iframe.style.position = 'absolute';
+  this.iframe.style.left = '0px';
+  this.iframe.style.top = '0px';
+  this.iframe.setAttribute('src', 'detect-refresh-rates.htm');
+  this.iframe.addEventListener('load', goog.bind(onSuccess, this), false);
+  this.iframe.addEventListener('error', goog.bind(onFailure, this), false);
   this.document.body.appendChild(this.iframe);
 
   var script = this.document.createElement('script');
@@ -998,8 +998,8 @@ SpriteContainer = function(containerEl, size) {
 };
 
 SpriteContainer.prototype.setSize = function(size) {
-  this.containerEl.style.width = size.width + "px";
-  this.containerEl.style.height = size.height + "px";
+  this.containerEl.style.width = size.width + 'px';
+  this.containerEl.style.height = size.height + 'px';
 };
 
 SpriteContainer.prototype.getSize = function() {
@@ -1011,7 +1011,7 @@ SpriteContainer.prototype.addSprite = function(sprite) {
 };
 
 SpriteContainer.prototype.addSpriteBefore = function(sprite, otherSprite) {
-  var spriteWrapper = document.createElement("div");
+  var spriteWrapper = document.createElement('div');
   spriteWrapper.style.position = 'relative';
   spriteWrapper.style.width = '0px';
   spriteWrapper.style.height = '0px';
@@ -1097,7 +1097,7 @@ ImageSprite = function(imgSrc, opt_width, opt_height) {
   this.img = new Image();
   this.img.src = imgSrc;
   this.img.onload = goog.bind(this.handleLoad, this);
-  this.imgLoadSpin = Spinner.getInstance().spin(100, "Loading image...");
+  this.imgLoadSpin = Spinner.getInstance().spin(100, 'Loading image...');
   this.imgWidth = opt_width;
   this.imgHeight = opt_height;
   this.leftOffset = 0;
@@ -1187,7 +1187,7 @@ ImageSprite.prototype.drawMotionBlur = function() {
   var points = this.motionBlurSpec.getPoints();
   var numPoints = points.length;
 
-  var spin = Spinner.getInstance().spin(100, "Generating motion blur...");
+  var spin = Spinner.getInstance().spin(100, 'Generating motion blur...');
   
   var leftOffset = this.leftOffset;
   var topOffset = this.topOffset;
@@ -1259,49 +1259,76 @@ ImageAsset = function(name, src, thumbSrc, attribLink) {
   this.attribLink = attribLink;
 };
 
+BACKGROUND_NAMES = {
+  AUTUMN: 'Autumn',
+  AUTUMN2: 'Autumn 2',
+  FOREST: 'Forest',
+  MILKY_WAY: 'Milky Way',
+  RIVER: 'River',
+  STARS: 'Stars',
+  SUNSET: 'Sunset',
+  WINTER: 'Winter'
+};
+
 BACKGROUND_IMAGE_ASSETS = [
-  new ImageAsset("Autumn", "images/backgrounds/autumn.jpg",
-      "images/backgrounds/thumbs/autumn.jpg",
-      "http://commons.wikimedia.org/wiki/File:Autumn_on_the_Indiana_University_campus.jpg"),
-  new ImageAsset("Autumn 2", "images/backgrounds/autumn2.jpg",
-      "images/backgrounds/thumbs/autumn2.jpg",
-      "http://commons.wikimedia.org/wiki/File:Autumn_scenery.jpg"),
-  new ImageAsset("Forest", "images/backgrounds/forest.jpg",
-      "images/backgrounds/thumbs/forest.jpg",
-      "http://commons.wikimedia.org/wiki/File:Dunns_Pond_Mound.jpg"),
-  new ImageAsset("Milky Way", "images/backgrounds/milky-way.jpg",
-      "images/backgrounds/thumbs/milky-way.jpg",
-      "http://commons.wikimedia.org/wiki/File:ESO-VLT-Laser-phot-33a-07.jpg"),
-  new ImageAsset("River", "images/backgrounds/river.jpg",
-      "images/backgrounds/thumbs/river.jpg",
-      "http://commons.wikimedia.org/wiki/File:Blanchard_River_at_Gilboa.jpg"),
-  new ImageAsset("Stars", "images/backgrounds/stars.jpg",
-      "images/backgrounds/thumbs/stars.jpg",
-      "http://commons.wikimedia.org/wiki/File:Central_region_of_the_Milky_Way.jpg"),
-  new ImageAsset("Sunset", "images/backgrounds/sunset.jpg",
-      "images/backgrounds/thumbs/sunset.jpg",
-      "http://commons.wikimedia.org/wiki/File:Sunset_on_the_Victoria_lake.JPG"),
-  new ImageAsset("Winter", "images/backgrounds/winter.jpg",
-      "images/backgrounds/thumbs/winter.jpg",
-      "http://commons.wikimedia.org/wiki/File:Wintry_scenery.jpg")
+  new ImageAsset(BACKGROUND_NAMES.AUTUMN, 'images/backgrounds/autumn.jpg',
+      'images/backgrounds/thumbs/autumn.jpg',
+      'http://commons.wikimedia.org/wiki/File:Autumn_on_the_Indiana_University_campus.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.AUTUMN2, 'images/backgrounds/autumn2.jpg',
+      'images/backgrounds/thumbs/autumn2.jpg',
+      'http://commons.wikimedia.org/wiki/File:Autumn_scenery.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.FOREST, 'images/backgrounds/forest.jpg',
+      'images/backgrounds/thumbs/forest.jpg',
+      'http://commons.wikimedia.org/wiki/File:Dunns_Pond_Mound.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.MILKY_WAY, 'images/backgrounds/milky-way.jpg',
+      'images/backgrounds/thumbs/milky-way.jpg',
+      'http://commons.wikimedia.org/wiki/File:ESO-VLT-Laser-phot-33a-07.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.RIVER, 'images/backgrounds/river.jpg',
+      'images/backgrounds/thumbs/river.jpg',
+      'http://commons.wikimedia.org/wiki/File:Blanchard_River_at_Gilboa.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.STARS, 'images/backgrounds/stars.jpg',
+      'images/backgrounds/thumbs/stars.jpg',
+      'http://commons.wikimedia.org/wiki/File:Central_region_of_the_Milky_Way.jpg'),
+  new ImageAsset(BACKGROUND_NAMES.SUNSET, 'images/backgrounds/sunset.jpg',
+      'images/backgrounds/thumbs/sunset.jpg',
+      'http://commons.wikimedia.org/wiki/File:Sunset_on_the_Victoria_lake.JPG'),
+  new ImageAsset(BACKGROUND_NAMES.WINTER, 'images/backgrounds/winter.jpg',
+      'images/backgrounds/thumbs/winter.jpg',
+      'http://commons.wikimedia.org/wiki/File:Wintry_scenery.jpg')
 ];
 
+BALL_NAMES = {
+  SOCCER_BALL: 'Soccer Ball',
+  BASEBALL: 'Baseball',
+  WORLD_CUP_FOOTBALL: 'World Cup Football',
+  MOON: 'Moon',
+  SPHERE: 'Sphere'
+};
+
 BALL_IMAGE_ASSETS = [
-  new ImageAsset("Soccer Ball", "images/sprites/ball1.png",
-      "images/sprites/thumbs/ball1.png",
-      "http://commons.wikimedia.org/wiki/File:Soccer_ball.svg"),
-  new ImageAsset("Baseball", "images/sprites/ball2.png",
-      "images/sprites/thumbs/ball2.png",
-      "http://commons.wikimedia.org/wiki/File:Baseball_(crop).jpg"),
-  new ImageAsset("World Cup Football", "images/sprites/ball3.png",
-      "images/sprites/thumbs/ball3.png",
-      "http://commons.wikimedia.org/wiki/File:Adidas_African_Cup_of_Nations_2008_match_ball_Wawa_Aba.jpg"),
-  new ImageAsset("Moon", "images/sprites/moon.png",
-      "images/sprites/thumbs/moon.png",
-      "http://commons.wikimedia.org/wiki/File:Full_moon.png"),
-  new ImageAsset("Sphere", "images/sprites/sphere.png",
-      "images/sprites/thumbs/sphere.png",
-      "http://commons.wikimedia.org/wiki/File:Blue-sphere.png")
+  new ImageAsset(BALL_NAMES.SOCCER_BALL, 'images/sprites/ball1.png',
+      'images/sprites/thumbs/ball1.png',
+      'http://commons.wikimedia.org/wiki/File:Soccer_ball.svg'),
+  new ImageAsset(BALL_NAMES.BASEBALL, 'images/sprites/ball2.png',
+      'images/sprites/thumbs/ball2.png',
+      'http://commons.wikimedia.org/wiki/File:Baseball_(crop).jpg'),
+  new ImageAsset(BALL_NAMES.WORLD_CUP_FOOTBALL, 'images/sprites/ball3.png',
+      'images/sprites/thumbs/ball3.png',
+      'http://commons.wikimedia.org/wiki/File:Adidas_African_Cup_of_Nations_2008_match_ball_Wawa_Aba.jpg'),
+  new ImageAsset(BALL_NAMES.MOON, 'images/sprites/moon.png',
+      'images/sprites/thumbs/moon.png',
+      'http://commons.wikimedia.org/wiki/File:Full_moon.png'),
+  new ImageAsset(BALL_NAMES.SPHERE, 'images/sprites/sphere.png',
+      'images/sprites/thumbs/sphere.png',
+      'http://commons.wikimedia.org/wiki/File:Blue-sphere.png')
+];
+
+GOOD_SPRITE_PAIRINGS = [
+  {background: BACKGROUND_NAMES.RIVER, ball: BALL_NAMES.BASEBALL},
+  {background: BACKGROUND_NAMES.AUTUMN, ball: BALL_NAMES.SOCCER_BALL},
+  {background: BACKGROUND_NAMES.MILKY_WAY, ball: BALL_NAMES.MOON},
+  {background: BACKGROUND_NAMES.SUNSET, ball: BALL_NAMES.SPHERE},
+  {background: BACKGROUND_NAMES.AUTUMN2, ball: BALL_NAMES.WORLD_CUP_FOOTBALL}
 ];
 
 STANDARD_FRAMES_PER_SECONDS = [
@@ -1324,10 +1351,10 @@ STANDARD_MOTION_BLURS = [
 
 AnimationController = function(el, bottomEl, spriteContainer, animationManager) {
   this.el = el;
-  this.controlContainerEl = this.el.getElementsByClassName("control-container")[0];
+  this.controlContainerEl = this.el.getElementsByClassName('control-container')[0];
   this.bottomEl = bottomEl;
   this.attributionsLinkEl = this.bottomEl.getElementsByClassName(
-      "show-attributions-link")[0];
+      'show-attributions-link')[0];
   this.spriteContainer = spriteContainer;
   this.animationManager = animationManager;
   this.spriteControls = [];
@@ -1355,7 +1382,7 @@ AnimationController.prototype.clearControls = function() {
     this.spriteControls[i].dispose();
   }
   this.spriteControls = [];
-  this.controlContainerEl.innerHTML = "";
+  this.controlContainerEl.innerHTML = '';
 };
 
 AnimationController.prototype.positionSprites = function() {
@@ -1382,19 +1409,19 @@ AnimationController.prototype.positionSprites = function() {
 };
 
 AnimationController.prototype.addSpacer = function() {
-  var spacerEl = document.createElement("div");
-  spacerEl.className = "spacer";
+  var spacerEl = document.createElement('div');
+  spacerEl.className = 'spacer';
   for (var i = 0; i < 5; i++) {
-    var rowEl = document.createElement("div");
+    var rowEl = document.createElement('div');
     if (i == 0) {
-      rowEl.className = "title-cell control-row";
+      rowEl.className = 'title-cell control-row';
     } else if (i == 1) {
-      rowEl.className = "attribution-cell control-row";
-      rowEl.style.display = this.showAttributions ? "" : "none";
+      rowEl.className = 'attribution-cell control-row';
+      rowEl.style.display = this.showAttributions ? '' : 'none';
     } else {
-      rowEl.className = "control-row";
+      rowEl.className = 'control-row';
     }
-    rowEl.innerHTML = "&nbsp;";
+    rowEl.innerHTML = '&nbsp;';
     spacerEl.appendChild(rowEl);
   }
   this.controlContainerEl.appendChild(spacerEl);
@@ -1424,18 +1451,24 @@ AnimationController.prototype.spriteAnimationSetToLargeFps = function(sprite) {
   this.largeFpsWarning.show();
 };
 
+AnimationController.prototype.getRandomBackgroundAndSpritePairing = function() {
+  return GOOD_SPRITE_PAIRINGS[
+      Math.round(Math.random() * GOOD_SPRITE_PAIRINGS.length - 0.5)];
+};
+
 AnimationController.prototype.loadDefaultPreset = function() {
   this.clearControls();
+  var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, "River"))
+      BACKGROUND_IMAGE_ASSETS, pair.background))
       .setVelocity(50)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
@@ -1443,16 +1476,17 @@ AnimationController.prototype.loadDefaultPreset = function() {
 
 AnimationController.prototype.load60Vs25Preset = function() {
   this.clearControls();
+  var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, "River"))
+      BACKGROUND_IMAGE_ASSETS, pair.background))
       .setVelocity(50)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
@@ -1460,16 +1494,17 @@ AnimationController.prototype.load60Vs25Preset = function() {
 
 AnimationController.prototype.load25VsMotionBlurPreset = function() {
   this.clearControls();
+  var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, "River"))
+      BACKGROUND_IMAGE_ASSETS, pair.background))
       .setVelocity(50)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(25)
       .setMotionBlur(new MotionBlurConfig(false));
@@ -1477,16 +1512,17 @@ AnimationController.prototype.load25VsMotionBlurPreset = function() {
 
 AnimationController.prototype.load60VsMotionBlurPreset = function() {
   this.clearControls();
+  var pair = this.getRandomBackgroundAndSpritePairing();
   this.addSpriteControl(new BackgroundSpriteControl(
-      BACKGROUND_IMAGE_ASSETS, "River"))
+      BACKGROUND_IMAGE_ASSETS, pair.background))
       .setVelocity(50)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(true));
-  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, "Soccer Ball"))
+  this.addSpriteControl(new BallSpriteControl(BALL_IMAGE_ASSETS, pair.ball))
       .setVelocity(1000)
       .setFramesPerSecond(60)
       .setMotionBlur(new MotionBlurConfig(false));
@@ -1497,11 +1533,11 @@ AnimationController.prototype.handleAttributionsLinkClick_ = function() {
     return;
   }
   this.attributionsShown = true;
-  this.attributionsLinkEl.style.display = "none";
+  this.attributionsLinkEl.style.display = 'none';
 
-  var attributionCells = this.el.getElementsByClassName("attribution-cell");
+  var attributionCells = this.el.getElementsByClassName('attribution-cell');
   for (var i = 0; i < attributionCells.length; i++) {
-    attributionCells[i].style.display = "";
+    attributionCells[i].style.display = '';
   }  
   for (var i = 0; i < this.spriteControls; i++) {
     this.spriteControls[i].showAttribution();
@@ -1554,20 +1590,20 @@ SpriteControl.prototype.dispose = function() {
 };
 
 SpriteControl.prototype.render = function(containerEl) {
-  this.el = document.createElement("div");
-  this.el.className = "sprite";
+  this.el = document.createElement('div');
+  this.el.className = 'sprite';
 
-  var titleCell = document.createElement("div");
-  titleCell.className = "title-cell control-row";
+  var titleCell = document.createElement('div');
+  titleCell.className = 'title-cell control-row';
   this.assetDropList = new DropList();
   this.assetDropList.render(titleCell);  
   for (var i = 0; i < this.spriteAssets.length; i++) {
     var spriteAsset = this.spriteAssets[i];
     var option = this.assetDropList.createOption(spriteAsset.name);
-    var titleImgEl = document.createElement("img");
+    var titleImgEl = document.createElement('img');
     titleImgEl.src = spriteAsset.thumbSrc;
     option.appendChild(titleImgEl);
-    var titleNameEl = document.createElement("span");
+    var titleNameEl = document.createElement('span');
     titleNameEl.appendChild(document.createTextNode(spriteAsset.name));
     option.appendChild(titleNameEl);
   }
@@ -1575,32 +1611,32 @@ SpriteControl.prototype.render = function(containerEl) {
   this.assetDropList.onchange.addListener(goog.bind(this.handleAssetChange_, this));
   this.el.appendChild(titleCell);
 
-  this.attributionCell = document.createElement("div");
-  this.attributionCell.className = "attribution-cell control-row";
-  this.attributionCell.style.display = "none";
-  this.attributionLinkEl = document.createElement("a");
-  this.attributionLinkEl.appendChild(document.createTextNode("Image source"));
-  this.attributionLinkEl.target = "_blank";
+  this.attributionCell = document.createElement('div');
+  this.attributionCell.className = 'attribution-cell control-row';
+  this.attributionCell.style.display = 'none';
+  this.attributionLinkEl = document.createElement('a');
+  this.attributionLinkEl.appendChild(document.createTextNode('Image source'));
+  this.attributionLinkEl.target = '_blank';
   this.attributionLinkEl.href = this.attributionLinkEl.title =
       this.getAssetByName(this.assetName).attribLink;
   this.attributionCell.appendChild(this.attributionLinkEl);
   this.el.appendChild(this.attributionCell);
 
-  var fpsCell = document.createElement("div");
-  fpsCell.className = "fps-cell control-row";
+  var fpsCell = document.createElement('div');
+  fpsCell.className = 'fps-cell control-row';
   this.fpsDropList = new DropList();
   this.fpsDropList.render(fpsCell);
   for (var i = 0; i < STANDARD_FRAMES_PER_SECONDS.length; i++) {
     var fps = STANDARD_FRAMES_PER_SECONDS[i];
     var option = this.fpsDropList.createOption(fps);
-    option.appendChild(document.createTextNode(fps + " fps"));
+    option.appendChild(document.createTextNode(fps + ' fps'));
   }
   this.fpsDropList.setSelected(this.framesPerSecond);
   this.fpsDropList.onchange.addListener(goog.bind(this.handleFpsChange_, this));
   this.el.appendChild(fpsCell);
 
-  var motionBlurCell = document.createElement("div");
-  motionBlurCell.className = "motion-blur-cell control-row";
+  var motionBlurCell = document.createElement('div');
+  motionBlurCell.className = 'motion-blur-cell control-row';
   this.motionBlurDropList = new DropList();
   this.motionBlurDropList.render(motionBlurCell);
   for (var i = 0; i < STANDARD_MOTION_BLURS.length; i++) {
@@ -1613,14 +1649,14 @@ SpriteControl.prototype.render = function(containerEl) {
       goog.bind(this.handleMotionBlurChange_, this));
   this.el.appendChild(motionBlurCell);
 
-  var velocityCell = document.createElement("div");
-  velocityCell.className = "velocity-cell control-row";
+  var velocityCell = document.createElement('div');
+  velocityCell.className = 'velocity-cell control-row';
   this.velocityDropList = new DropList();
   this.velocityDropList.render(velocityCell);
   for (var i = 0; i < STANDARD_VELOCITY_PER_SECONDS.length; i++) {
     var v = STANDARD_VELOCITY_PER_SECONDS[i];
     var option = this.velocityDropList.createOption(v);
-    option.appendChild(document.createTextNode(v + " px/s"));
+    option.appendChild(document.createTextNode(v + ' px/s'));
   }
   this.velocityDropList.setSelected(this.velocity);
   this.velocityDropList.onchange.addListener(goog.bind(this.handleVelocityChange_, this));
@@ -1630,7 +1666,7 @@ SpriteControl.prototype.render = function(containerEl) {
 };
 
 SpriteControl.prototype.showAttribution = function() {
-  this.attributionCell.style.display = "";
+  this.attributionCell.style.display = '';
 };
 
 SpriteControl.prototype.setVelocity = function(velocity) {
@@ -1761,12 +1797,12 @@ LargeFpsWarning = function() {
 };
 
 LargeFpsWarning.prototype.show = function() {
-  this.el.style.display = "";
+  this.el.style.display = '';
   this.updateDisplay();
 };
 
 LargeFpsWarning.prototype.hide = function() {
-  this.el.style.display = "none";
+  this.el.style.display = 'none';
 };
 
 LargeFpsWarning.prototype.handleRefreshRateTesterState = function() {
@@ -1779,10 +1815,10 @@ LargeFpsWarning.prototype.updateDisplay = function() {
       'rate of 60 Hz. Animations faster than the native refresh rate ' +
       'will not appear smoother.';
 
-  this.buttonContainerEl.innerHTML = "";
+  this.buttonContainerEl.innerHTML = '';
 
   if (this.installJava) {
-    message = "In a moment you should be redirected to install java...";
+    message = 'In a moment you should be redirected to install java...';
   } else if (!this.checkUsingJava) {
     var javaButton = document.createElement('button');
     javaButton.innerHTML = '<span>Find my monitor\'s refresh rate using java</span>';
@@ -1793,22 +1829,22 @@ LargeFpsWarning.prototype.updateDisplay = function() {
     var State = DetectRefreshRates.State;
     var state = this.refreshRateDetector.getState();
     if (state == State.LOADING_JAVA) {
-      message = "Loading java...";
+      message = 'Loading java...';
     } else if (state == State.LOADING_JAVA_ERROR) {
-      message = "Error while loading java";
+      message = 'Error while loading java';
     } else if (state == State.JAVA_MISSING) {
-      message = "You do not appear to java " +
+      message = 'You do not appear to java ' +
           DetectRefreshRates.JAVA_VERSION_MATCHER +
-          " installed.";
+          ' installed.';
       var javaInstallButton = document.createElement('button');
       javaInstallButton.innerHTML = '<span>Redirect to install java if available</span>';
       javaInstallButton.addEventListener('click',
           goog.bind(this.handleInstallJavaClick, this), false);
       this.buttonContainerEl.appendChild(javaInstallButton);
     } else if (state == State.LOADING_APPLET) {
-      message = "Loading applet...";
+      message = 'Loading applet...';
     } else if (state == State.LOADING_APPLET_TIMEOUT) {
-      message = "Timed out while waiting for applet to load.";
+      message = 'Timed out while waiting for applet to load.';
     } else if (state == State.COMPLETE) {
       var refreshRates = this.refreshRateDetector.getScreenRefreshRates();
       var knownRefreshRates = [];
@@ -1832,7 +1868,7 @@ LargeFpsWarning.prototype.updateDisplay = function() {
             'As such, the animations in this demo should work up to 60 frames per second.';
       }
     } else {
-      throw new Error("Unexpected state: " + state);
+      throw new Error('Unexpected state: ' + state);
     }
   }
 
@@ -1844,8 +1880,8 @@ LargeFpsWarning.prototype.updateDisplay = function() {
 
   this.messageEl.innerHTML = message;
 
-  this.el.style.marginLeft = -(this.el.offsetWidth/2) + "px";
-  this.el.style.marginTop = -(this.el.offsetHeight/2) + "px";
+  this.el.style.marginLeft = -(this.el.offsetWidth/2) + 'px';
+  this.el.style.marginTop = -(this.el.offsetHeight/2) + 'px';
 };
 
 LargeFpsWarning.prototype.handleCheckUsingJavaClick = function() {
