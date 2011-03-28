@@ -297,7 +297,7 @@ DropList.NAME_FIELD = 'DLO-name';
 DropList.prototype.render = function(containerEl) {
   this.el = document.createElement('div');
   this.el.className = 'drop-list';
-  this.el.onclick = goog.bind(this.handleClick_, this);
+  this.el.addEventListener('click', goog.bind(this.handleClick_, this), false);
 
   this.buttonEl = document.createElement('div');
   this.buttonEl.className = 'drop-list-button';
@@ -315,7 +315,7 @@ DropList.prototype.render = function(containerEl) {
   this.listEl.className = 'drop-list-list';
   this.listEl.style.display = 'none';
   this.listEl.tabIndex = -1;
-  this.listEl.onblur = goog.bind(this.setOpen, this, false);
+  this.listEl.addEventListener('blur', goog.bind(this.setOpen, this, false), false);
   this.el.appendChild(this.listEl);
 
   containerEl.appendChild(this.el);
@@ -325,7 +325,8 @@ DropList.prototype.createOption = function(optionName) {
   var optionEl = document.createElement('div');
   optionEl.className = 'drop-list-option';
   optionEl[DropList.NAME_FIELD] = optionName;
-  optionEl.onclick = goog.bind(this.handleClickOption_, this, optionName);
+  optionEl.addEventListener('click',
+      goog.bind(this.handleClickOption_, this, optionName), false);
 
   this.listEl.appendChild(optionEl);
   return optionEl;
@@ -620,8 +621,9 @@ FrameRateMonitor.prototype.getFrameVariance = function() {
 FramesIndicator = function(el) {
   Animation.call(this, 2);
   this.el = el;
-  this.el.onmouseover = goog.bind(this.setFullDisplay, this, true);
-  this.el.onmouseout = goog.bind(this.setFullDisplay, this, false);
+  this.el.addEventListener('mouseover',
+      goog.bind(this.setFullDisplay, this, true), false);
+  this.el.addEventListener('mouseout', goog.bind(this.setFullDisplay, this, false), false);
 
   this.tableEl = document.createElement('table');
   this.el.appendChild(this.tableEl);
@@ -1100,7 +1102,7 @@ ImageSprite = function(imgSrc, opt_width, opt_height) {
   Sprite.call(this);
   this.img = new Image();
   this.img.src = imgSrc;
-  this.img.onload = goog.bind(this.handleLoad, this);
+  this.img.addEventListener('load', goog.bind(this.handleLoad, this), false);
   this.imgLoadSpin = Spinner.getInstance().spin(100, 'Loading image...');
   this.imgWidth = opt_width;
   this.imgHeight = opt_height;
@@ -1453,7 +1455,8 @@ AnimationController.prototype.render = function() {
       this.el.removeChild(nodes[i]);
     }
   }
-  this.attributionsLinkEl.onclick = goog.bind(this.handleAttributionsLinkClick_, this);
+  this.attributionsLinkEl.addEventListener('click',
+      goog.bind(this.handleAttributionsLinkClick_, this), false);
   this.addControlButtonEl.addEventListener('click',
       goog.bind(this.handleAddControlButtonClick_, this), false);
 };
@@ -1967,7 +1970,7 @@ LargeFpsWarning.prototype.handleIgnoreClick = function() {
   this.hide();
 };
 
-window.onload = function() {
+window.addEventListener('load', function() {
   var spriteContainer = new SpriteContainer(
       document.getElementById('animation-container'),
       VideoSizes.DVD);
@@ -1986,7 +1989,7 @@ window.onload = function() {
   animationManager.addAnimation(framesIndicator);
 
   animationManager.start();
-};
+}, false);
     </script>
     <style type="text/css">
 body {
