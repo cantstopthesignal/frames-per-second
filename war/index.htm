@@ -753,6 +753,39 @@ Animation.prototype.step = function(elapsedMs) {
   this.frameRateMonitor.step();
 };
 
+PaintRateMonitor = function() {
+  Animation.call(this, 2);
+  goog.asserts.assert(PaintRateMonitor.isAvailable());
+  this.paintCountHistory_ = [];
+};
+goog.inherits(PaintRateMonitor, Animation);
+
+PaintRateMonitor.isAvailable = function() {
+  return 'mozPaintCount' in window;
+};
+
+PaintRateMonitor.prototype.getCurrentPaintCount_ = function() {
+  return window.mozPaintCount;
+};
+
+PaintRateMonitor.prototype.getPaintsPerSecond = function() {
+  if (this.paintCountHistory_.length > 1) {
+    var start = this.paintCountHistory_[this.paintCountHistory_.length-2];
+    var end = this.paintCountHistory_[this.paintCountHistory_.length-1];
+    return (end.count - start.count) / ((end.timeMs - start.timeMs) / 1000);
+  }
+  return 0;
+};
+
+PaintRateMonitor.prototype.step = function(elapsedMs) {
+  PaintRateMonitor.superClass_.step.call(this, elapsedMs);
+  var paintCount = this.getCurrentPaintCount_();
+  while (this.paintCountHistory_.length > 3) {
+    this.paintCountHistory_.splice(0, 1);
+  }
+  this.paintCountHistory_.push({count: paintCount, timeMs: elapsedMs});
+};
+
 FrameRateMonitor = function(animation) {
   this.animation = animation;
   this.frameHistory = [];
@@ -811,7 +844,7 @@ FramesIndicator = function(el) {
   this.setFullDisplay(false);
 
   var row = this.addRow();
-  this.addCell(row, 'Animation');
+  this.addCell(row, '');
   this.addCell(row, 'Frames per second');
   this.addCell(row, 'Timing error (stddev)');
 };
@@ -834,8 +867,11 @@ FramesIndicator.prototype.addRow = function() {
   return row;
 };
 
-FramesIndicator.prototype.addCell = function(row, text) {
+FramesIndicator.prototype.addCell = function(row, text, opt_className) {
   var cell = document.createElement('td');
+  if (opt_className) {
+    cell.className = opt_className;
+  }
   row.appendChild(cell);
   cell.appendChild(document.createTextNode(text));
   return cell;
@@ -850,21 +886,27 @@ FramesIndicator.prototype.renderDisplay = function() {
   var hasErrors = false;
 
   var animations = this.manager.getAnimations();
+  var paintRateMonitor = null;
   var animationNumber = 0;
+  var maxFpsDesired = 0;
   for (var i = 0; i < animations.length; i++) {
-    if (animations[i] instanceof FramesIndicator) {
+    if (animations[i] instanceof PaintRateMonitor) {
+      paintRateMonitor = animations[i];
+    }
+    if (!(animations[i] instanceof SpriteBounceAnimation)) {
       continue;
     }
     var row = this.addRow();
 
     animationNumber++;
-    this.addCell(row, animationNumber);
+    this.addCell(row, 'Animation ' + animationNumber, 'name');
 
     var frameMonitor = animations[i].getFrameRateMonitor();
     var fps = frameMonitor.getFrameRate();
     var fpsDesired = animations[i].getFramesPerSecond();
     var fpsErrorPercent = (Math.abs(fps - fpsDesired) / fpsDesired) * 100;
     var timingStddev = Math.sqrt(frameMonitor.getFrameVariance());
+    maxFpsDesired = Math.max(maxFpsDesired, fpsDesired);
 
     var fpsCell = this.addCell(row, Math.round(fps) + ' / ' + fpsDesired);
     if (fpsErrorPercent > 20) {
@@ -882,13 +924,33 @@ FramesIndicator.prototype.renderDisplay = function() {
       timingError += '0';
     }
     var timingErrorCell = this.addCell(row, timingError + 'ms');
-    if (timingStddev > 8) {
+    if (timingStddev > 10) {
       hasErrors = true;
       goog.dom.classes.add(timingErrorCell, 'error');
-    } else if (timingStddev > 3) {
+    } else if (timingStddev > 5) {
       hasWarnings = true;
       goog.dom.classes.add(timingErrorCell, 'warning');
     }
+  }
+  if (paintRateMonitor) {
+    var row = this.addRow();
+
+    this.addCell(row, 'Browser Paint', 'name');
+
+    var pps = paintRateMonitor.getPaintsPerSecond();
+    var ppsMissPercent = ((maxFpsDesired - pps) / maxFpsDesired) * 100;
+    console.log(ppsMissPercent);
+
+    var ppsCell = this.addCell(row, Math.round(pps) + ' / ' + maxFpsDesired);
+    if (ppsMissPercent > 20) {
+      hasErrors = true;
+      goog.dom.classes.add(ppsCell, 'error');
+    } else if (ppsMissPercent > 5) {
+      hasWarnings = true;
+      goog.dom.classes.add(ppsCell, 'warning');
+    }
+
+    this.addCell(row, '');
   }
 
   goog.dom.classes.remove(this.ballEl, 'warning', 'error');
@@ -2231,7 +2293,7 @@ BrowserVersionWarning.prototype.updateDisplay = function() {
 };
 
 window.onload = function() {
- var browserVersionWarning = new BrowserVersionWarning();
+  var browserVersionWarning = new BrowserVersionWarning();
   browserVersionWarning.check();
 
   var spriteContainer = new SpriteContainer(
@@ -2249,6 +2311,10 @@ window.onload = function() {
 
   var framesIndicator = new FramesIndicator(
       document.getElementById('frames-indicator'));
+  if (PaintRateMonitor.isAvailable()) {
+    var paintRateMonitor = new PaintRateMonitor();
+    animationManager.addAnimation(paintRateMonitor);
+  }
   animationManager.addAnimation(framesIndicator);
 
   animationManager.start();
@@ -2478,6 +2544,9 @@ body {
   text-align: right;
   border: 1px solid #ccc;
   padding: 1px 3px;
+}
+.frames-indicator td.name {
+  text-align: left;
 }
 .frames-indicator td.warning {
   color: orange;
