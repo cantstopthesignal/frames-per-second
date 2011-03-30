@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<project basedir="." default="compile">
+
+  <taskdef name="jscomp" classname="com.google.javascript.jscomp.ant.CompileTask"
+           classpath="build/closure-compiler.jar"/>
+
+  <target name="compile">
+  	
+  	<filelist id="sources" dir="${basedir}/src/js">
+ 	  <file name="main.js"/>
+  	</filelist>
+
+    <jscomp compilationLevel="whitespace" warning="quiet"
+            debug="true" output="war/js/main_debug.js">
+      <sources refid="sources" />
+    </jscomp>
+
+    <jscomp compilationLevel="simple" warning="verbose" 
+            debug="false" output="war/js/main_optimized.js">
+      <sources refid="sources" />
+    </jscomp>
+  	
+  	<copyfile dest="war/js/main_uncompiled.js" src="${basedir}/src/js/main.js"/>
+
+  </target>
+	
+  <target name="clean">
+
+  	<delete>
+      <fileset dir="war/js">
+        <include name="*.js"/>
+      </fileset>
+    </delete>
+
+  </target>
+
+</project>

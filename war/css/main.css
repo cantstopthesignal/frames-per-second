@@ -1,0 +1,309 @@
+body {
+  font-family: Arial;
+  font-size: 16px;
+  margin: 0px;
+  padding: 0px;
+}
+.drop-list {
+  cursor: default;
+  -webkit-user-select: none;
+  display: inline-block;
+}
+.drop-list-button {
+  border: 1px solid transparent;
+  position: relative;
+}
+.drop-list-button:hover,
+.drop-list-open .drop-list-button {
+  background-color: white;
+  border-color: #99f;
+  border-top-color: #ccf;
+  border-left-color: #ccf;
+  z-index: 2;
+}
+.drop-list-arrow {
+  width: 12px;
+  height: 10px;
+  background: url(../images/dropdown-arrow.png) -5px -4px;
+  display: inline-block;
+}
+.drop-list-selected {
+  display: inline-block;
+}
+.drop-list-list {
+  position: absolute;
+  margin-top: 1px;
+  outline: none;
+  background-color: white;
+  box-shadow: 0px 5px 15px #000;
+  -moz-box-shadow: 0px 5px 15px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 15px #000;  /* Safari le 5 */
+  z-index: 3;
+}
+.drop-list-list .drop-list-option:hover{
+  background-color: #ccf;
+}
+.control-bar .drop-list-option {
+  padding: 3px;
+}
+.control-bar,
+.bottom-control-bar {
+  font-size: 11pt;
+}
+.control-bar {
+  margin: 10px;
+  margin-bottom: 0;
+}
+.control-bar .control-container {
+  display: inline-block;
+  vertical-align: top;
+}
+.control-bar .control-add,
+.control-bar .control-remove {
+  background: url(../images/add-remove-controls-sprite.png);
+  display: inline-block;
+  height: 18px;
+  width: 18px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+.control-bar .control-add {
+  background-position: -54px 0px;
+}
+.control-bar .control-add:hover {
+  background-position: -36px 0px;
+}
+.control-bar .control-remove {
+  background-position: -18px 0px;
+}
+.control-bar .control-remove:hover {
+  background-position: 0px 0px;
+}
+.control-bar .control-add {
+  margin-left: 15px;
+  margin-bottom: 10px;
+  vertical-align: top;
+}
+.control-bar .control-remove-container {
+  float: right;
+  height: 0px;
+  position: relative;
+  top: -9px;
+  right: -9px;
+}
+.control-bar .control-remove {
+  visibility: hidden;
+}
+.control-bar .sprite:hover .control-remove {
+  visibility: visible;
+}
+.control-bar .control-row {
+  border-bottom: 1px solid #ccc;
+  padding: 5px;
+  height: 19px;
+}
+.control-bar .title-cell {
+  height: 40px;
+}
+.control-bar .control-row:first-child {
+  padding-top: 5px;
+}
+.control-bar .control-row:last-child {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+.control-bar .desc {
+  display: inline-block;
+  vertical-align: top;
+  border-top: 2px solid transparent;
+  margin-bottom: 10px;
+}
+.control-bar .desc .control-row {
+  text-align: right;
+  padding-right: 20px;
+}
+.control-bar .desc .title-cell {
+  vertical-align: middle;
+  line-height: 40px;
+}
+.control-bar .spacer {
+  display: inline-block;
+  width: 15px;
+  border-top: 2px solid transparent;
+}
+.control-bar .sprite {
+  display: inline-block;
+  vertical-align: top;
+  background-color: #e8e8ff;
+  border: 2px outset;
+  border-color: #ddf;
+  border-radius: 10px;
+  -moz-border-radius: 10px;  /* FF lt 4 */
+  min-width: 125px;
+  margin-bottom: 10px;
+}
+.control-bar .sprite .title-cell img {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+}
+.control-bar .sprite .title-cell span {
+  vertical-align: middle;
+  line-height: 32px;
+  margin: 5px;
+}
+.control-bar .sprite .fps-cell {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 25px;
+}
+.control-bar .sprite .motion-blur-cell {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  height: 25px;
+}
+.control-bar .sprite .velocity-cell {
+  padding-top: 2px;
+}
+.bottom-control-bar {
+  margin: 5px 10px;
+}
+.show-attributions {
+  text-align: right;
+  font-size: 10pt;
+}
+.show-attributions a {
+  cursor: pointer;
+  color: #66e;
+}
+.frames-indicator {
+  font-size: 11pt;
+  position:fixed;
+  top: 10px;
+  right: 10px;
+  text-align: right;
+}
+.frames-indicator-ball {
+  display: inline-block;
+  border-radius: 10px;
+  -moz-border-radius: 10px;  /* FF lt 4 */
+  width: 20px;
+  height: 20px;  
+  background-color: green;
+  vertical-align: top;
+}
+.frames-indicator-arrow {
+  width: 11px;
+  height: 10px;
+  background: url(../images/dropdown-arrow.png) -5px -4px;
+  display: inline-block;
+}
+.frames-indicator-ball.warning {
+  background-color: orange;
+}
+.frames-indicator-ball.error {
+  background-color: red;
+}
+.frames-indicator table {
+  border-collapse: collapse;
+  background-color: #fff;
+  display: inline-block;
+  position: relative;
+  margin-right: 5px;
+  vertical-align: top;
+  background-color: #fff;
+  z-index: 4;
+  box-shadow: 0px 5px 10px #fff;
+  -moz-box-shadow: 0px 5px 10px #fff;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #fff;  /* Safari le 5 */
+}
+.frames-indicator td {
+  text-align: right;
+  border: 1px solid #ccc;
+  padding: 1px 3px;
+}
+.frames-indicator td.name {
+  text-align: left;
+}
+.frames-indicator td.warning {
+  color: orange;
+}
+.frames-indicator td.error {
+  color: red;
+}
+.animation-box {
+  text-align: center;
+  background-color: black;
+  width: 100%;
+}
+.animation-frame {
+  border: 5px solid black;
+  display: inline-block;
+  background-color: #333;
+}
+.animation-container {
+  display: inline-block;
+  text-align: left;
+  overflow: hidden;
+}
+.more-information {
+  padding: 0px 10px;
+}
+.dialog {
+  background-color: black;
+  color: white;
+  width: 300px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 10px 10px;
+  border: 1px solid black;
+  border-radius: 15px;
+  -moz-border-radius: 15px;  /* FF lt 4 */
+  box-shadow: 0px 5px 10px #000;
+  -moz-box-shadow: 0px 5px 10px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #000;  /* Safari le 5 */
+  overflow: hidden;
+  z-index: 20;
+}
+.dialog button {
+  margin-top: 5px;
+  font-size: 16px;
+  text-align: center;
+  width: 100%;
+}
+.dialog button span {
+  display: block;
+  padding: 1px;
+  cursor: default;
+}
+.spinner {
+  background-color: black;
+  height: 32px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 10px 20px;
+  border: 1px solid black;
+  border-radius: 15px;
+  -moz-border-radius: 15px;  /* FF lt 4 */
+  box-shadow: 0px 5px 10px #000;
+  -moz-box-shadow: 0px 5px 10px #000;  /* FF lt 4 */
+  -webkit-box-shadow: 0px 5px 10px #000;  /* Safari le 5 */
+  overflow: hidden;
+  z-index: 10;
+}
+.spinner-img {
+  width: 48px;
+  height: 48px;
+  margin-left: -10px;
+  margin-top: -5px;
+  margin-bottom: -5px;
+  vertical-align: middle;
+}
+.spinner-message {
+  color: white;
+  display: inline;
+  padding-left: 5px;
+  vertical-align: middle;
+}
