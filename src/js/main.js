@@ -1648,14 +1648,13 @@ main.STANDARD_MOTION_BLURS = [
 ];
 
 /** @constructor */
-main.AnimationController = function(el, bottomEl, spriteContainer, animationManager) {
+main.AnimationController = function(el, attributionsLinkEl, spriteContainer,
+    animationManager) {
   this.el = el;
   this.controlContainerEl = this.el.getElementsByClassName('control-container')[0];
   this.addControlButtonEl = this.el.getElementsByClassName(
       'control-add')[0];
-  this.bottomEl = bottomEl;
-  this.attributionsLinkEl = this.bottomEl.getElementsByClassName(
-      'show-attributions-link')[0];
+  this.attributionsLinkEl = attributionsLinkEl;
   this.spriteContainer = spriteContainer;
   this.animationManager = animationManager;
   this.spriteControls = [];
@@ -1835,6 +1834,7 @@ main.AnimationController.prototype.handleAttributionsLinkClick_ = function() {
   }
   this.attributionsShown = true;
   this.attributionsLinkEl.style.display = 'none';
+  window.scrollTo(0, 0);
 
   var attributionCells = this.el.getElementsByClassName('attribution-cell');
   for (var i = 0; i < attributionCells.length; i++) {
@@ -2339,7 +2339,8 @@ window.onload = function() {
   var animationManager = new main.AnimationManager();
 
   var animationController = new main.AnimationController(
-      document.getElementById('control-bar'), document.getElementById('bottom-control-bar'),
+      document.getElementById('control-bar'),
+      document.getElementById('show-attributions-link'),
       spriteContainer, animationManager);
   animationController.render();
   animationController.loadDefaultPreset();
