@@ -6,9 +6,13 @@
 
   <target name="compile">
   	
-  	<filelist id="sources" dir="${basedir}/src/js">
- 	  <file name="main.js"/>
-  	</filelist>
+    <filelist id="sources" dir="${basedir}/src/js">
+      <file name="main.js"/>
+    </filelist>
+
+    <concat destfile="war/js/main_uncompiled.js" append="false">
+      <filelist refid="sources" />
+    </concat>
 
     <jscomp compilationLevel="whitespace" warning="quiet"
             debug="true" output="war/js/main_debug.js">
@@ -20,13 +24,11 @@
       <sources refid="sources" />
     </jscomp>
   	
-  	<copyfile dest="war/js/main_uncompiled.js" src="${basedir}/src/js/main.js"/>
-
   </target>
 	
   <target name="clean">
 
-  	<delete>
+    <delete>
       <fileset dir="war/js">
         <include name="*.js"/>
       </fileset>
