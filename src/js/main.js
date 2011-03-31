@@ -5,6 +5,10 @@
 var goog = {};
 goog.global = this;
 
+goog.abstractMethod = function() {
+  throw new Error('unimplemented abstract method');
+};
+
 goog.bind = function(fn, selfObj, var_args) {
   var context = selfObj || goog.global;
   if (arguments.length > 2) {
@@ -780,13 +784,35 @@ main.PaintRateMonitor = function() {
 };
 goog.inherits(main.PaintRateMonitor, main.Animation);
 
-main.PaintRateMonitor.isAvailable = function() {
-  return 'mozPaintCount' in window;
+main.PaintRateMonitor.monitors_ = [];
+
+main.PaintRateMonitor.registerMonitor = function(monitorClass) {
+  main.PaintRateMonitor.monitors_.push(monitorClass);
 };
 
-main.PaintRateMonitor.prototype.getCurrentPaintCount_ = function() {
-  return window.mozPaintCount;
+main.PaintRateMonitor.getAvailableMonitor_ = function() {
+  for (var i = 0; i < main.PaintRateMonitor.monitors_.length; i++) {
+    if (main.PaintRateMonitor.monitors_[i].isAvailable()) {
+      return main.PaintRateMonitor.monitors_[i];
+    }
+  }
+  return null;
 };
+
+main.PaintRateMonitor.isAvailable = function() {
+  return !!main.PaintRateMonitor.getAvailableMonitor_();
+};
+
+main.PaintRateMonitor.create = function() {
+  var monitor = main.PaintRateMonitor.getAvailableMonitor_();
+  if (monitor) {
+    return new monitor();
+  } else {
+    throw new Error('No PaintRateMonitors available');
+  }
+};
+
+main.PaintRateMonitor.prototype.getCurrentPaintCount_ = goog.abstractMethod;
 
 main.PaintRateMonitor.prototype.getPaintsPerSecond = function() {
   if (this.paintCountHistory_.length > 1) {
@@ -797,6 +823,8 @@ main.PaintRateMonitor.prototype.getPaintsPerSecond = function() {
   return 0;
 };
 
+main.PaintRateMonitor.prototype.isAccurate = goog.abstractMethod;
+
 main.PaintRateMonitor.prototype.step = function(elapsedMs) {
   main.PaintRateMonitor.superClass_.step.call(this, elapsedMs);
   var paintCount = this.getCurrentPaintCount_();
@@ -804,6 +832,73 @@ main.PaintRateMonitor.prototype.step = function(elapsedMs) {
     this.paintCountHistory_.splice(0, 1);
   }
   this.paintCountHistory_.push({count: paintCount, timeMs: elapsedMs});
+};
+
+/** @constructor */
+main.MozillaPaintRateMonitor = function() {
+  main.PaintRateMonitor.call(this);
+  goog.asserts.assert(main.MozillaPaintRateMonitor.isAvailable());
+};
+goog.inherits(main.MozillaPaintRateMonitor, main.PaintRateMonitor);
+main.PaintRateMonitor.registerMonitor(main.MozillaPaintRateMonitor);
+
+main.MozillaPaintRateMonitor.isAvailable = function() {
+  return 'mozPaintCount' in window;
+};
+
+main.MozillaPaintRateMonitor.prototype.getCurrentPaintCount_ = function() {
+  return window.mozPaintCount;
+};
+
+main.MozillaPaintRateMonitor.prototype.isAccurate = function() {
+  return true;
+};
+
+/** @constructor */
+main.ChromePaintRateMonitor = function() {
+  main.PaintRateMonitor.call(this);
+  goog.asserts.assert(main.ChromePaintRateMonitor.isAvailable());
+  this.running_ = false;
+  this.chromePaintCount_ = 0;
+  this.handleAnimationFrameCallback_ = goog.bind(
+      this.handleAnimationFrame_, this);
+};
+goog.inherits(main.ChromePaintRateMonitor, main.PaintRateMonitor);
+main.PaintRateMonitor.registerMonitor(main.ChromePaintRateMonitor);
+
+main.ChromePaintRateMonitor.isAvailable = function() {
+  return 'webkitRequestAnimationFrame' in window;
+};
+
+main.ChromePaintRateMonitor.prototype.getCurrentPaintCount_ = function() {
+  return this.chromePaintCount_;
+};
+
+main.ChromePaintRateMonitor.prototype.isAccurate = function() {
+  return false;
+};
+
+main.ChromePaintRateMonitor.prototype.start = function() {
+  main.ChromePaintRateMonitor.superClass_.start.call(this);
+  this.running_ = true;
+  this.maybeRequestFrame_();
+};
+
+main.ChromePaintRateMonitor.prototype.stop = function() {
+  main.ChromePaintRateMonitor.superClass_.stop.call(this);
+  this.running_ = false;
+};
+
+main.ChromePaintRateMonitor.prototype.maybeRequestFrame_ = function() {
+  if (!this.running_) {
+    return;
+  }
+  window.webkitRequestAnimationFrame(this.handleAnimationFrameCallback_);
+};
+
+main.ChromePaintRateMonitor.prototype.handleAnimationFrame_ = function(time) {
+  this.chromePaintCount_++;
+  this.maybeRequestFrame_();
 };
 
 /** @constructor */
@@ -956,18 +1051,29 @@ main.FramesIndicator.prototype.renderDisplay = function() {
   }
   if (paintRateMonitor) {
     var row = this.addRow();
+    
+    var accurate = paintRateMonitor.isAccurate();
 
-    this.addCell(row, 'Browser Paint', 'name');
+    var cell = this.addCell(
+        row, 'Browser Paint' + (accurate ? '' : '*'), 'name');
+    if (!accurate) {
+      cell.title = 'The method used to determine paint rate is not accurate ' +
+          'for this browser.';
+    }
 
     var pps = paintRateMonitor.getPaintsPerSecond();
     var ppsMissPercent = ((maxFpsDesired - pps) / maxFpsDesired) * 100;
 
     var ppsCell = this.addCell(row, Math.round(pps) + ' / ' + maxFpsDesired);
     if (ppsMissPercent > 20) {
-      hasErrors = true;
+      if (accurate) {
+        hasErrors = true;
+      }
       goog.dom.classes.add(ppsCell, 'error');
     } else if (ppsMissPercent > 5) {
-      hasWarnings = true;
+      if (accurate) {
+        hasWarnings = true;
+      }
       goog.dom.classes.add(ppsCell, 'warning');
     }
 
@@ -2349,7 +2455,7 @@ window.onload = function() {
   var framesIndicator = new main.FramesIndicator(
       document.getElementById('frames-indicator'));
   if (main.PaintRateMonitor.isAvailable()) {
-    var paintRateMonitor = new main.PaintRateMonitor();
+    var paintRateMonitor = main.PaintRateMonitor.create();
     animationManager.addAnimation(paintRateMonitor);
   }
   animationManager.addAnimation(framesIndicator);
