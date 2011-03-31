@@ -9,6 +9,12 @@ goog.abstractMethod = function() {
   throw new Error('unimplemented abstract method');
 };
 
+/**
+ * @param {Function} fn
+ * @param {Object|undefined} selfObj
+ * @param {...*} var_args
+ * @return {!Function}
+ */
 goog.bind = function(fn, selfObj, var_args) {
   var context = selfObj || goog.global;
   if (arguments.length > 2) {
@@ -25,6 +31,11 @@ goog.bind = function(fn, selfObj, var_args) {
   }
 };
 
+/**
+ * @param {Function} fn
+ * @param {...*} var_args
+ * @return {!Function}
+ */
 goog.partial = function(fn, var_args) {
   var args = Array.prototype.slice.call(arguments, 1);
   return function() {
@@ -35,6 +46,7 @@ goog.partial = function(fn, var_args) {
 };
 
 goog.inherits = function(childCtor, parentCtor) {
+  /** @constructor */
   function tempCtor() {};
   tempCtor.prototype = parentCtor.prototype;
   childCtor.superClass_ = parentCtor.prototype;
@@ -44,6 +56,10 @@ goog.inherits = function(childCtor, parentCtor) {
 
 goog.asserts = {};
 
+/**
+ * @param {boolean} condition
+ * @param {string=} opt_message
+ */
 goog.asserts.assert = function(condition, opt_message) {
   if (!condition) {
     throw new Error(opt_message || 'Assert failed');
@@ -63,6 +79,10 @@ goog.dom.classes.get = function(element) {
       className.split(/\s+/) : [];
 };
 
+/**
+ * @param {Element} element
+ * @param {...string} var_args
+ */
 goog.dom.classes.add = function(element, var_args) {
   var classes = goog.dom.classes.get(element);
   var args = Array.prototype.slice.call(arguments, 1);
@@ -73,6 +93,10 @@ goog.dom.classes.add = function(element, var_args) {
   return b;
 };
 
+/**
+ * @param {Element} element
+ * @param {...string} var_args
+ */
 goog.dom.classes.remove = function(element, var_args) {
   var classes = goog.dom.classes.get(element);
   var args = Array.prototype.slice.call(arguments, 1);
@@ -311,6 +335,9 @@ main.EventHost.prototype.addListener = function(listener) {
   this.listeners.push(listener);
 };
 
+/**
+ * @param {...*} var_args
+ */
 main.EventHost.prototype.fire = function(var_args) {
   for (var i = 0; i < this.listeners.length; i++) {
     this.listeners[i].apply(null, arguments);
@@ -737,6 +764,7 @@ main.Animation = function(framesPerSecond) {
   this.framesPerSecond = framesPerSecond;
   this.frameNumber = 0;
   this.lastStepTimeMs = null;
+  /** @type {main.AnimationManager} */
   this.manager = null;
   this.frameRateMonitor = new main.FrameRateMonitor(this);
 };
@@ -776,7 +804,10 @@ main.Animation.prototype.step = function(elapsedMs) {
   this.frameRateMonitor.step();
 };
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.Animation}
+ */
 main.PaintRateMonitor = function() {
   main.Animation.call(this, 2);
   goog.asserts.assert(main.PaintRateMonitor.isAvailable());
@@ -834,7 +865,10 @@ main.PaintRateMonitor.prototype.step = function(elapsedMs) {
   this.paintCountHistory_.push({count: paintCount, timeMs: elapsedMs});
 };
 
-/** @constructor */
+/**
+ * @constructor 
+ * @extends {main.PaintRateMonitor}
+ */
 main.MozillaPaintRateMonitor = function() {
   main.PaintRateMonitor.call(this);
   goog.asserts.assert(main.MozillaPaintRateMonitor.isAvailable());
@@ -847,14 +881,17 @@ main.MozillaPaintRateMonitor.isAvailable = function() {
 };
 
 main.MozillaPaintRateMonitor.prototype.getCurrentPaintCount_ = function() {
-  return window.mozPaintCount;
+  return window['mozPaintCount'];
 };
 
 main.MozillaPaintRateMonitor.prototype.isAccurate = function() {
   return true;
 };
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.PaintRateMonitor} 
+ */
 main.ChromePaintRateMonitor = function() {
   main.PaintRateMonitor.call(this);
   goog.asserts.assert(main.ChromePaintRateMonitor.isAvailable());
@@ -893,7 +930,7 @@ main.ChromePaintRateMonitor.prototype.maybeRequestFrame_ = function() {
   if (!this.running_) {
     return;
   }
-  window.webkitRequestAnimationFrame(this.handleAnimationFrameCallback_);
+  window['webkitRequestAnimationFrame'](this.handleAnimationFrameCallback_);
 };
 
 main.ChromePaintRateMonitor.prototype.handleAnimationFrame_ = function(time) {
@@ -938,7 +975,10 @@ main.FrameRateMonitor.prototype.getFrameVariance = function() {
   return sumDist / (this.frameHistory.length - 1);
 };
 
-/** @constructor */
+/** 
+ * @constructor
+ * @extends {main.Animation}
+ */
 main.FramesIndicator = function(el) {
   main.Animation.call(this, 2);
   this.el = el;
@@ -984,6 +1024,11 @@ main.FramesIndicator.prototype.addRow = function() {
   return row;
 };
 
+/**
+ * @param {Element} row
+ * @param {string} text
+ * @param {string=} opt_className
+ */
 main.FramesIndicator.prototype.addCell = function(row, text, opt_className) {
   var cell = document.createElement('td');
   if (opt_className) {
@@ -1088,7 +1133,10 @@ main.FramesIndicator.prototype.renderDisplay = function() {
   }
 };
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.Animation} 
+ */
 main.BounceAnimation = function(framesPerSecond, velocityPxPerSec, min, max) {
   main.Animation.call(this, framesPerSecond);
   this.velocityPxPerSec = velocityPxPerSec;
@@ -1127,7 +1175,10 @@ main.BounceAnimation.prototype.step = function(elapsedMs) {
   this.move(Math.floor(pos));
 };
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.BounceAnimation}
+ */
 main.SpriteBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
   main.BounceAnimation.call(this, framesPerSecond, velocityPxPerSec, 0, 0);
   this.sprite = sprite;
@@ -1169,7 +1220,10 @@ main.SpriteBounceAnimation.prototype.move = function(pos) {};
 
 main.SpriteBounceAnimation.prototype.handleLoad = function() {};
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.SpriteBounceAnimation}
+ */
 main.BallBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
   main.SpriteBounceAnimation.call(this, sprite, framesPerSecond, velocityPxPerSec);
 };
@@ -1193,7 +1247,10 @@ main.BallBounceAnimation.prototype.handleLoad = function() {
   this.setRange(0, containerSize.width - this.sprite.getSize().width);
 };
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.SpriteBounceAnimation} 
+ */
 main.BackgroundBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
   main.SpriteBounceAnimation.call(this, sprite, framesPerSecond, velocityPxPerSec);
 };
@@ -1318,9 +1375,9 @@ main.DetectRefreshRates.prototype.handleJavaLoad = function(e) {
   goog.asserts.assert(this.javaDeploy && this.frameDetectRefreshRates,
       'Expected javaDeploy and frameDetectRefreshRates to have loaded');
 
-  this.javaDeploy.returnPage = this.window.location.href;
+  this.javaDeploy['returnPage'] = this.window.location.href;
 
-  if (this.frameDetectRefreshRates.getJavaMissing()) {
+  if (this.frameDetectRefreshRates['getJavaMissing']()) {
     this.stateChange(main.DetectRefreshRates.State.JAVA_MISSING);
     return;
   }
@@ -1331,12 +1388,12 @@ main.DetectRefreshRates.prototype.handleJavaLoad = function(e) {
 };
 
 main.DetectRefreshRates.prototype.installJava = function() {
-  this.javaDeploy.installJRE(main.DetectRefreshRates.JAVA_VERSION_MATCHER);
+  this.javaDeploy['installJRE'](main.DetectRefreshRates.JAVA_VERSION_MATCHER);
 };
 
 main.DetectRefreshRates.prototype.handleAppletPoll = function() {
   var nowTime = (new Date()).getTime();
-  var refreshRates = this.frameDetectRefreshRates.getRefreshRates();
+  var refreshRates = this.frameDetectRefreshRates['getRefreshRates']();
   if (!refreshRates && nowTime < this.appletPollStartTimeMs + 60 * 1000) {
     return;
   }
@@ -1419,6 +1476,7 @@ main.SpriteContainer.prototype.positionSprite = function(sprite) {
 /** @constructor */
 main.Sprite = function() {
   this.motionBlurSpec = null;
+  /** @type {main.SpriteContainer} */
   this.container = null;
   this.pos = new main.Point(0, 0);
   this.loaded = false;
@@ -1429,7 +1487,7 @@ main.Sprite.prototype.isLoaded = function() {
   return this.loaded;
 };
 
-main.Sprite.prototype.getSize = function() {};
+main.Sprite.prototype.getSize = goog.abstractMethod;
 
 main.Sprite.prototype.setTop = function(top) {
   this.move(this.getPosition().setY(top));
@@ -1450,7 +1508,7 @@ main.Sprite.prototype.getPosition = function() {
   return this.pos.clone();
 };
 
-main.Sprite.prototype.getElement = function() {};
+main.Sprite.prototype.getElement = goog.abstractMethod;
 
 main.Sprite.prototype.setContainer = function(container) {
   goog.asserts.assert(container == null || this.container == null);
@@ -1465,7 +1523,13 @@ main.Sprite.prototype.setMotionBlur = function(motionBlurSpec) {
   this.motionBlurSpec = motionBlurSpec;
 };
 
-/** @constructor */
+/** 
+ * @param {string} imgSrc
+ * @param {number=} opt_width
+ * @param {number=} opt_height
+ * @constructor
+ * @extends {main.Sprite} 
+ */
 main.ImageSprite = function(imgSrc, opt_width, opt_height) {
   main.Sprite.call(this);
   this.img = new Image();
@@ -1551,7 +1615,10 @@ main.ImageSprite.prototype.drawImgCanvas = function() {
   return false;
 };
 
-main.ImageSprite.prototype.draw = function(initialDraw) {
+/**
+ * @param {boolean=} opt_initialDraw
+ */
+main.ImageSprite.prototype.draw = function(opt_initialDraw) {
   var motionBlurBounds = this.motionBlurSpec ? this.motionBlurSpec.getBounds() :
       new main.Bounds(0, 0, 0, 0);
 
@@ -1566,7 +1633,7 @@ main.ImageSprite.prototype.draw = function(initialDraw) {
   this.canvas.style.left = this.leftOffset + 'px';
   this.canvas.style.top = this.topOffset + 'px';
 
-  if (initialDraw || !this.motionBlurSpec) {
+  if (opt_initialDraw || !this.motionBlurSpec) {
     this.drawPlain();
   }
   if (this.motionBlurSpec) {
@@ -1946,7 +2013,7 @@ main.AnimationController.prototype.handleAttributionsLinkClick_ = function() {
   for (var i = 0; i < attributionCells.length; i++) {
     attributionCells[i].style.display = '';
   }  
-  for (var i = 0; i < this.spriteControls; i++) {
+  for (var i = 0; i < this.spriteControls.length; i++) {
     this.spriteControls[i].showAttribution();
   }
 };
@@ -2216,7 +2283,10 @@ main.SpriteControl.prototype.createSprite = function() {
 
 main.SpriteControl.prototype.createAnimation = function() {};
 
-/** @constructor */
+/**
+ * @constructor
+ * @extends {main.SpriteControl}
+ */
 main.BallSpriteControl = function(spriteAssets, assetName) {
   main.SpriteControl.call(this, spriteAssets, assetName);
 };
@@ -2231,7 +2301,10 @@ main.BallSpriteControl.prototype.createSprite = function() {
   this.sprite = new main.ImageSprite(this.getAssetByName(this.assetName).src, 100, 100);
 };
 
-/** @constructor */
+/** 
+ * @constructor
+ * @extends {main.SpriteControl} 
+ */
 main.BackgroundSpriteControl = function(spriteAssets, assetName) {
   main.SpriteControl.call(this, spriteAssets, assetName);
   this.setAllowRemove(false);
@@ -2320,7 +2393,7 @@ main.LargeFpsWarning.prototype.updateDisplay = function() {
       var refreshRates = this.refreshRateDetector.getScreenRefreshRates();
       var knownRefreshRates = [];
       for (var i = 0; i < refreshRates.length; i++) {
-        var refreshRate = parseInt(refreshRates[i]);
+        var refreshRate = parseInt(refreshRates[i], 10);
         if (refreshRate && knownRefreshRates.indexOf(refreshRate) < 0) {
           knownRefreshRates.push(refreshRate);
         }
