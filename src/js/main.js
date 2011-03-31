@@ -1100,9 +1100,9 @@ main.FramesIndicator.prototype.renderDisplay = function() {
     var accurate = paintRateMonitor.isAccurate();
 
     var cell = this.addCell(
-        row, 'Browser Paint' + (accurate ? '' : '*'), 'name');
+        row, 'Browser Paint' + (accurate ? '' : ' (Flawed)'), 'name');
     if (!accurate) {
-      cell.title = 'The method used to determine paint rate is not accurate ' +
+      cell.title = 'The method used to determine paint rate is not correct ' +
           'for this browser.';
     }
 
