@@ -5,7 +5,7 @@
            classpath="build/closure-compiler.jar"/>
 
   <target name="compile">
-  	
+
     <filelist id="sources" dir="${basedir}/src/js">
       <file name="main.js"/>
     </filelist>
@@ -23,9 +23,9 @@
             debug="false" output="war/js/main_optimized.js">
       <sources refid="sources" />
     </jscomp>
-  	
+
   </target>
-	
+
   <target name="clean">
 
     <delete>
