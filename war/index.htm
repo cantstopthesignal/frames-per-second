@@ -5,38 +5,41 @@
     <title>Compare frames per second: which looks better?</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <script type="text/javascript">
+      getQueryParam = function(name, def) {
+        var params = window.location.search.substr(1).split('&');
+        for (var i = params.length - 1; i >= 0; i--) {
+          var pieces = params[i].split('=');
+          if (pieces[0] == name) return pieces[1];
+        }
+        return def;
+      };
+    </script>
+    <script type="text/javascript">
       (function() {
-        var jsMode = 'optimized';
-		var params = window.location.search.substr(1).split('&');
-		for (var i = 0; i < params.length; i++) {
-		  var pieces = params[i].split('=');
-		  if (pieces[0] == 'jsmode') {
-		    jsMode = pieces[1];
-		  }
-		}
         var js = document.createElement('script');
         js.type = 'text/javascript';
-        js.src = 'js/main_' + jsMode + '.js';
+        js.src = 'js/main_' + getQueryParam('jsmode', 'optimized') + '.js';
         var s = document.getElementsByTagName('script')[0];
         s.parentNode.insertBefore(js, s);
       })();
     </script>
     <link rel="stylesheet" href="css/main.css" type="text/css" />
     <link rel="shortcut icon" href="about:blank" />
-    <!-- Google Analytics -->
     <script type="text/javascript">
-      var _gaq = _gaq || [];
-      _gaq.push(['_setAccount', 'UA-22342359-1']);
-      _gaq.push(['_trackPageview']);
-      (function() {
-        var ga = document.createElement('script');
-        ga.type = 'text/javascript';
-        ga.async = true;
-        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
-            '.google-analytics.com/ga.js';
-        var s = document.getElementsByTagName('script')[0];
-        s.parentNode.insertBefore(ga, s);
-      })();
+      if (getQueryParam('track', '1') == '1') {
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-22342359-1']);
+        _gaq.push(['_trackPageview']);
+        (function() {
+          var ga = document.createElement('script');
+          ga.type = 'text/javascript';
+          ga.async = true;
+          ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') +
+              '.google-analytics.com/ga.js';
+          var s = document.getElementsByTagName('script')[0];
+          s.parentNode.insertBefore(ga, s);
+        })();
+      }
     </script>
   </head>
   <body>
