@@ -1,0 +1,16 @@
+/* TEAM */
+  Developer, Designer: Cant Stop The Signal
+  Contact: cantstopthesignals [at] gmail.com
+  Reddit: http://www.reddit.com/user/CantStopTheSignal/
+  From: Kirkland, Washington, USA
+
+/* THANKS */
+  Reddit Community: For all the great feedback and suggestions.
+  Wikipedia: For linking to the site.
+  IE9 Team: For making a browser that was easy to support after developing on Chrome first.
+
+/* SITE */
+  Language: English
+  IDE: Eclipse, Emacs
+  Source code: https://github.com/cantstopthesignal/frames-per-second
+  
