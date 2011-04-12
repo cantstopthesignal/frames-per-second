@@ -4,6 +4,18 @@ body {
   margin: 0px;
   padding: 0px;
 }
+a {
+  color: #0000cc;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+blockquote {
+  border: 1px solid #aaa;
+  background-color: #eee;
+  padding: 5px;
+}
 .drop-list {
   cursor: default;
   -webkit-user-select: none;
