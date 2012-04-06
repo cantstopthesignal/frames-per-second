@@ -1629,7 +1629,9 @@ main.ImageSprite.prototype.draw = function(opt_initialDraw) {
 
   this.el.width = this.imgWidth;
   this.el.height = this.imgHeight;
-  this.canvas.style.position = 'relative';
+  // Don't make canvas relative, see:
+  // http://code.google.com/p/chromium/issues/detail?id=119893
+  // this.canvas.style.position = 'relative';
   this.canvas.style.left = this.leftOffset + 'px';
   this.canvas.style.top = this.topOffset + 'px';
 
