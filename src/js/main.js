@@ -1,5 +1,5 @@
-/* 
- * The following goog.* methods are adapted from the Google closure toolkit 
+/*
+ * The following goog.* methods are adapted from the Google closure toolkit
  * See http://closure-library.googlecode.com/ for the full closure library
  */
 var goog = {};
@@ -435,10 +435,10 @@ main.MotionBlurSpec.forDiagonalLinearPath = function(distance) {
   return new main.MotionBlurSpec(points);
 };
 
-/** 
+/**
  * @param {boolean} enabled
  * @param {number=} opt_weight
- * @constructor 
+ * @constructor
  */
 main.MotionBlurConfig = function(enabled, opt_weight) {
   /** @type {boolean} */
@@ -600,7 +600,7 @@ main.Spinner = function() {
   imgEl.src = 'images/spinner-black.gif';
   goog.dom.classes.add(imgEl, 'spinner-img');
   this.el.appendChild(imgEl);
-  
+
   this.messageEl = document.createElement('div');
   goog.dom.classes.add(this.messageEl, 'spinner-message');
   this.el.appendChild(this.messageEl);
@@ -612,7 +612,7 @@ main.Spinner = function() {
 
 /**
  * @param {main.Spinner} spinner
- * @param {string=} opt_message 
+ * @param {string=} opt_message
  * @constructor
  */
 main.Spinner.SpinEntry = function(spinner, opt_message) {
@@ -866,7 +866,7 @@ main.PaintRateMonitor.prototype.step = function(elapsedMs) {
 };
 
 /**
- * @constructor 
+ * @constructor
  * @extends {main.PaintRateMonitor}
  */
 main.MozillaPaintRateMonitor = function() {
@@ -890,7 +890,7 @@ main.MozillaPaintRateMonitor.prototype.isAccurate = function() {
 
 /**
  * @constructor
- * @extends {main.PaintRateMonitor} 
+ * @extends {main.PaintRateMonitor}
  */
 main.ChromePaintRateMonitor = function() {
   main.PaintRateMonitor.call(this);
@@ -975,7 +975,7 @@ main.FrameRateMonitor.prototype.getFrameVariance = function() {
   return sumDist / (this.frameHistory.length - 1);
 };
 
-/** 
+/**
  * @constructor
  * @extends {main.Animation}
  */
@@ -1008,7 +1008,7 @@ main.FramesIndicator = function(el) {
 goog.inherits(main.FramesIndicator, main.Animation);
 
 main.FramesIndicator.prototype.step = function(elapsedMs) {
-  main.FramesIndicator.superClass_.step.call(this, elapsedMs);  
+  main.FramesIndicator.superClass_.step.call(this, elapsedMs);
   this.renderDisplay();
 };
 
@@ -1096,7 +1096,7 @@ main.FramesIndicator.prototype.renderDisplay = function() {
   }
   if (paintRateMonitor) {
     var row = this.addRow();
-    
+
     var accurate = paintRateMonitor.isAccurate();
 
     var cell = this.addCell(
@@ -1135,7 +1135,7 @@ main.FramesIndicator.prototype.renderDisplay = function() {
 
 /**
  * @constructor
- * @extends {main.Animation} 
+ * @extends {main.Animation}
  */
 main.BounceAnimation = function(framesPerSecond, velocityPxPerSec, min, max) {
   main.Animation.call(this, framesPerSecond);
@@ -1249,7 +1249,7 @@ main.BallBounceAnimation.prototype.handleLoad = function() {
 
 /**
  * @constructor
- * @extends {main.SpriteBounceAnimation} 
+ * @extends {main.SpriteBounceAnimation}
  */
 main.BackgroundBounceAnimation = function(sprite, framesPerSecond, velocityPxPerSec) {
   main.SpriteBounceAnimation.call(this, sprite, framesPerSecond, velocityPxPerSec);
@@ -1523,12 +1523,12 @@ main.Sprite.prototype.setMotionBlur = function(motionBlurSpec) {
   this.motionBlurSpec = motionBlurSpec;
 };
 
-/** 
+/**
  * @param {string} imgSrc
  * @param {number=} opt_width
  * @param {number=} opt_height
  * @constructor
- * @extends {main.Sprite} 
+ * @extends {main.Sprite}
  */
 main.ImageSprite = function(imgSrc, opt_width, opt_height) {
   main.Sprite.call(this);
@@ -1660,7 +1660,7 @@ main.ImageSprite.prototype.drawMotionBlur = function() {
   var numPoints = points.length;
 
   var spin = main.Spinner.getInstance().spin(100, 'Generating motion blur...');
-  
+
   var leftOffset = this.leftOffset;
   var topOffset = this.topOffset;
   var canvasWidth = this.canvasWidth;
@@ -1720,7 +1720,7 @@ main.ImageSprite.prototype.drawMotionBlur = function() {
     this.ctx.putImageData(outputData, 0, 0);
     spin.release();
   }, this);
-  
+
   window.setTimeout(process, 0);
 };
 
@@ -1805,7 +1805,7 @@ main.GOOD_SPRITE_PAIRINGS = [
 ];
 
 main.STANDARD_FRAMES_PER_SECONDS = [
-  5, 10, 15, 25, 30, 48, 60, 90, 120
+  5, 10, 15, 24, 25, 30, 48, 60, 90, 120
 ];
 
 main.STANDARD_VELOCITY_PER_SECONDS = [
@@ -2014,7 +2014,7 @@ main.AnimationController.prototype.handleAttributionsLinkClick_ = function() {
   var attributionCells = this.el.getElementsByClassName('attribution-cell');
   for (var i = 0; i < attributionCells.length; i++) {
     attributionCells[i].style.display = '';
-  }  
+  }
   for (var i = 0; i < this.spriteControls.length; i++) {
     this.spriteControls[i].showAttribution();
   }
@@ -2128,7 +2128,7 @@ main.SpriteControl.prototype.render = function() {
   var titleCell = document.createElement('div');
   titleCell.className = 'title-cell control-row';
   this.assetDropList = new main.DropList();
-  this.assetDropList.render(titleCell);  
+  this.assetDropList.render(titleCell);
   for (var i = 0; i < this.spriteAssets.length; i++) {
     var spriteAsset = this.spriteAssets[i];
     var option = this.assetDropList.createOption(spriteAsset.name);
@@ -2303,9 +2303,9 @@ main.BallSpriteControl.prototype.createSprite = function() {
   this.sprite = new main.ImageSprite(this.getAssetByName(this.assetName).src, 100, 100);
 };
 
-/** 
+/**
  * @constructor
- * @extends {main.SpriteControl} 
+ * @extends {main.SpriteControl}
  */
 main.BackgroundSpriteControl = function(spriteAssets, assetName) {
   main.SpriteControl.call(this, spriteAssets, assetName);
@@ -2406,10 +2406,10 @@ main.LargeFpsWarning.prototype.updateDisplay = function() {
             knownRefreshRates[0] + ' frames per second.';
       } else if (knownRefreshRates.length > 1) {
         message = 'Your monitors are running at the refresh rates of ' +
-            knownRefreshRates.join(', ') + ' Hz.  The animations in this demo should work ' + 
+            knownRefreshRates.join(', ') + ' Hz.  The animations in this demo should work ' +
             'up to these levels depending on which monitor your browser is in.';
       } else {
-        message = 'The applet loaded but your monitor\'s refresh rate could not be ' + 
+        message = 'The applet loaded but your monitor\'s refresh rate could not be ' +
             'determined. If you are using an LCD monitor you are most likely running at ' +
             '60 Hz. As such, the animations in this demo should work up to 60 frames per ' +
             'second.';
