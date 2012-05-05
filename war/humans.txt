@@ -13,4 +13,3 @@
   Language: English
   IDE: Eclipse, Emacs
   Source code: https://github.com/cantstopthesignal/frames-per-second
-  

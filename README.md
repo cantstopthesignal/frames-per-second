@@ -4,7 +4,7 @@ Frames Per Second
 A simple web tool to explore the differences between animated frames
 per second and motion blur.
 
-The site is publised as [http://frames-per-second.appspot.com](http://frames-per-second.appspot.com).
+The site is published as [http://frames-per-second.appspot.com](http://frames-per-second.appspot.com).
 
 
 Technologies Used
