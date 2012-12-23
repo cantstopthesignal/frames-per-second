@@ -1650,7 +1650,7 @@ main.ImageSprite.prototype.drawPlain = function() {
   this.ctx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
 };
 
-main.ImageSprite.prototype.drawMotionBlur = function() {
+main.ImageSprite.prototype.drawMotionBlurNaiveAdditive = function() {
   var imgData = this.imgCtx.getImageData(0, 0, this.imgWidth, this.imgHeight);
   var imgPixels = imgData.data;
   var outputData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight);
@@ -1669,8 +1669,9 @@ main.ImageSprite.prototype.drawMotionBlur = function() {
   var i = 0;
   var y = 0;
   var process = goog.bind(function() {
-    if (this.leftOffset != leftOffset || this.topOffset != topOffset
-        || this.canvasWidth != canvasWidth || this.canvasHeight != canvasHeight) {
+    if (this.leftOffset != leftOffset || this.topOffset != topOffset ||
+        this.canvasWidth != canvasWidth ||
+        this.canvasHeight != canvasHeight) {
       spin.release();
       return;
     }
@@ -1723,6 +1724,267 @@ main.ImageSprite.prototype.drawMotionBlur = function() {
 
   window.setTimeout(process, 0);
 };
+
+main.ImageSprite.prototype.drawMotionBlurAlphaAwareAdditive = function() {
+  var imgData = this.imgCtx.getImageData(0, 0, this.imgWidth, this.imgHeight);
+  var imgPixels = imgData.data;
+  var outputData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight);
+  var outputPixels = outputData.data;
+  var outputBuffer = new Array(outputPixels.length);
+
+  var points = this.motionBlurSpec.getPoints();
+  var numPoints = points.length;
+
+  var spin = main.Spinner.getInstance().spin(100, 'Generating motion blur...');
+
+  var leftOffset = this.leftOffset;
+  var topOffset = this.topOffset;
+  var canvasWidth = this.canvasWidth;
+  var canvasHeight = this.canvasHeight;
+  var createOutputBufferIdx = 0;
+  var outputPointIdx = 0;
+  var pointIdx = 0;
+  var y = 0;
+  var process = goog.bind(function() {
+    if (this.leftOffset != leftOffset || this.topOffset != topOffset ||
+        this.canvasWidth != canvasWidth ||
+        this.canvasHeight != canvasHeight) {
+      spin.release();
+      return;
+    }
+
+    var count = 0;
+    var startTimeMs = new Date().getTime();
+    var shouldReturn = function (workDone) {
+      count -= workDone;
+      if (count <= 0) {
+        var elapsedMs = new Date().getTime() - startTimeMs;
+        if (elapsedMs > 10) {
+          window.setTimeout(process, 0);
+          return true;
+        }
+        count = 10000;
+      }
+      return false;
+    };
+
+    for (; createOutputBufferIdx < outputPixels.length;
+        createOutputBufferIdx++) {
+      outputBuffer[createOutputBufferIdx] = 0;
+      if (shouldReturn(1)) return;
+    }
+    while (pointIdx < numPoints) {
+      var point = points[pointIdx];
+      while (y < this.imgHeight) {
+        for (var x = 0; x < this.imgWidth; x++) {
+          var outX = x + point.x - leftOffset;
+          var outY = y + point.y - topOffset;
+          if (outX < 0 || outX >= canvasWidth || outY < 0 || outY >= canvasHeight) {
+            continue;
+          }
+          var imgOff = (y * this.imgWidth + x) * 4;
+          var outOff = (outY * canvasWidth + outX) * 4;
+          var alpha = imgPixels[imgOff+3];
+          outputBuffer[outOff+3] += alpha;
+          for (var k = 0; k < 3; k++) {
+            outputBuffer[outOff+k] += imgPixels[imgOff+k] * alpha;
+          }
+        }
+        y++;
+        if (shouldReturn(this.imgWidth * 10)) return;
+      }
+      y = 0;
+      pointIdx++;
+    }
+    for (; outputPointIdx < outputPixels.length; outputPointIdx += 4) {
+      var i = outputPointIdx;
+      var alpha = outputBuffer[i+3];
+      outputPixels[i+3] = alpha / numPoints;
+      if (alpha) {
+        for (var k = 0; k < 3; k++) {
+          outputPixels[i+k] = outputBuffer[i+k] / alpha;
+        }
+      }
+      if (shouldReturn(4)) return;
+    }
+    this.canvas.width = canvasWidth;
+    this.canvas.height = canvasHeight;
+    this.ctx.putImageData(outputData, 0, 0);
+    spin.release();
+  }, this);
+
+  window.setTimeout(process, 0);
+};
+
+main.ImageSprite.prototype.drawMotionBlurAlphaCompositeAttempt = function() {
+  var imgData = this.imgCtx.getImageData(0, 0, this.imgWidth, this.imgHeight);
+  var imgPixels = imgData.data;
+  var outputData = this.ctx.createImageData(this.canvasWidth, this.canvasHeight);
+  var outputPixels = outputData.data;
+
+  for (var i = 0; i < outputPixels.length / 4; i++) {
+    outputPixels[4*i + 0] = 255;
+    outputPixels[4*i + 1] = 255;
+    outputPixels[4*i + 2] = 255;
+    outputPixels[4*i + 3] = 255;
+  }
+
+  var points = this.motionBlurSpec.getPoints();
+  var numPoints = points.length;
+
+  var spin = main.Spinner.getInstance().spin(100, 'Generating motion blur...');
+
+  var leftOffset = this.leftOffset;
+  var topOffset = this.topOffset;
+  var canvasWidth = this.canvasWidth;
+  var canvasHeight = this.canvasHeight;
+  var i = 0;
+  var j = 0;
+  var y = 0;
+  var process = goog.bind(function() {
+    if (this.leftOffset != leftOffset || this.topOffset != topOffset ||
+        this.canvasWidth != canvasWidth ||
+        this.canvasHeight != canvasHeight) {
+      spin.release();
+      return;
+    }
+
+    var count = 0;
+    var startTimeMs = new Date().getTime();
+    var shouldReturn = function (workDone) {
+      count -= workDone;
+      if (count <= 0) {
+        var elapsedMs = new Date().getTime() - startTimeMs;
+        if (elapsedMs > 10) {
+          window.setTimeout(process, 0);
+          return true;
+        }
+        count = 10000;
+      }
+      return false;
+    };
+
+    while (i < numPoints) {
+      var point = points[i];
+      while (y < this.imgHeight) {
+        for (var x = 0; x < this.imgWidth; x++) {
+          var outX = x + point.x - leftOffset;
+          var outY = y + point.y - topOffset;
+          if (outX < 0 || outX >= canvasWidth || outY < 0 || outY >= canvasHeight) {
+            continue;
+          }
+          var imgOff = (y * this.imgWidth + x) * 4;
+          var outOff = (outY * canvasWidth + outX) * 4;
+          var alphaA = (imgPixels[imgOff+3] / 255.0) / numPoints;
+          var alphaB = outputPixels[outOff+3] / 255.0;
+          var alphaO = alphaA + alphaB * (1 - alphaA);
+          outputPixels[outOff+3] = alphaO * 255;
+          for (var k = 0; k < 3; k++) {
+            var colorA = imgPixels[imgOff+k];
+            var colorB = outputPixels[outOff+k];
+            var colorO = (colorA * alphaA + colorB * alphaB * (1 - alphaA));
+            outputPixels[outOff+k] = colorO;
+          }
+        }
+        y++;
+        if (shouldReturn(this.imgWidth * 10)) return;
+      }
+      y = 0;
+      i++;
+    }
+    while (j < outputPixels.length) {
+      outputPixels[j] = Math.round(outputPixels[j]);
+      j++;
+      if (shouldReturn(1)) return;
+    }
+    this.canvas.width = canvasWidth;
+    this.canvas.height = canvasHeight;
+    this.ctx.putImageData(outputData, 0, 0);
+    spin.release();
+  }, this);
+
+  window.setTimeout(process, 0);
+};
+
+main.ImageSprite.prototype.drawMotionBlurAlphaReduceCanvasComposite =
+    function() {
+  this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+  var imgBlurCanvas = document.createElement('canvas');
+  imgBlurCanvas.width = this.imgWidth;
+  imgBlurCanvas.height = this.imgHeight;
+  var imgBlurCtx = imgBlurCanvas.getContext('2d');
+  imgBlurCtx.clearRect(0, 0, this.imgWidth, this.imgHeight);
+  imgBlurCtx.drawImage(this.img, 0, 0, this.imgWidth, this.imgHeight);
+
+  var imgBlurData = imgBlurCtx.getImageData(0, 0, this.imgWidth,
+      this.imgHeight);
+  var imgBlurPixels = imgBlurData.data;
+
+  var points = this.motionBlurSpec.getPoints();
+  var numPoints = points.length;
+
+  var spin = main.Spinner.getInstance().spin(100, 'Generating motion blur...');
+
+  var leftOffset = this.leftOffset;
+  var topOffset = this.topOffset;
+  var canvasWidth = this.canvasWidth;
+  var canvasHeight = this.canvasHeight;
+  var j = 0;
+  var i = 0;
+  var hasPutBlurImageData = false;
+  var process = goog.bind(function() {
+    if (this.leftOffset != leftOffset || this.topOffset != topOffset ||
+        this.canvasWidth != canvasWidth ||
+        this.canvasHeight != canvasHeight) {
+      spin.release();
+      return;
+    }
+
+    this.canvas.width = canvasWidth;
+    this.canvas.height = canvasHeight;
+    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+
+    var count = 0;
+    var startTimeMs = new Date().getTime();
+    var shouldReturn = function (workDone) {
+      count -= workDone;
+      if (count <= 0) {
+        var elapsedMs = new Date().getTime() - startTimeMs;
+        if (elapsedMs > 10) {
+          window.setTimeout(process, 0);
+          return true;
+        }
+        count = 10000;
+      }
+      return false;
+    };
+    for (; j < imgBlurPixels.length; j += 4) {
+      imgBlurPixels[j + 3] /= numPoints;
+      if (shouldReturn(1)) return;
+    }
+    if (!hasPutBlurImageData) {
+      imgBlurCtx.putImageData(imgBlurData, 0, 0);
+      hasPutBlurImageData = true;
+    }
+
+    while (i < numPoints) {
+      var point = points[i];
+      var outX = point.x - leftOffset;
+      var outY = point.y - topOffset;
+      this.ctx.drawImage(imgBlurCanvas, outX, outY, this.imgWidth,
+          this.imgHeight);
+      if (shouldReturn(100)) return;
+      i++;
+    }
+    spin.release();
+  }, this);
+
+  window.setTimeout(process, 0);
+};
+
+main.ImageSprite.prototype.drawMotionBlur =
+    main.ImageSprite.prototype.drawMotionBlurAlphaAwareAdditive;
 
 /** @constructor */
 main.ImageAsset = function(name, src, thumbSrc, attribLink) {
